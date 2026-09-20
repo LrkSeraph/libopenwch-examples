@@ -8,9 +8,10 @@ test, and they are a source of code to copy from.
 
 **To start your own project, use
 [libopenwch-template](https://github.com/LrkSeraph/libopenwch-template)
-instead** — that is an empty project skeleton with libopenwch as a submodule.
-This repository is a collection of finished examples; it is not a starting
-point, and the examples are not meant to be edited into a product.
+instead** — that is an empty project skeleton, with libopenwch and the
+companion flasher as submodules and nothing else.  This repository is a
+collection of finished examples; it is not a starting point, and the examples
+are not meant to be edited into a product.
 
 Both this repository and `libopenwch-template` carry libopenwch as a git
 submodule rather than vendoring it: the library is something you build
@@ -66,17 +67,18 @@ CH32V00x part.
 
 Not from here — use
 [libopenwch-template](https://github.com/LrkSeraph/libopenwch-template), which
-is an empty project with libopenwch already wired in as a submodule.  These
-examples are references: read one, copy the parts you need, or copy a whole
-example into your own project and adapt it.
+is an empty project with libopenwch and the companion flasher already wired in
+as submodules.  These examples are references: read one, then take the
+sequence of calls you need.
 
 ```sh
-cp -r ~/src/libopenwch-examples/examples/blink ~/src/my-firmware/src
+# the closest example to what you are writing, in the template's src/
+less ~/src/libopenwch-examples/examples/ch582_uart_echo/main.c
 ```
 
-`main.c` only has to provide `int main(void)`.  Everything else — the reset
-path, `.data`/`.bss` initialisation, the vector table and the entry point —
-comes from libopenwch's QingKe core layer.
+An example's `main.c` is the whole program: it provides `int main(void)` and
+nothing else.  The reset path, `.data`/`.bss` initialisation, the vector table
+and the entry point all come from libopenwch's QingKe core layer.
 
 ## Layout
 
@@ -86,6 +88,7 @@ libopenwch-examples/
 ├── .clang-format            house style, shared with libopenwch
 ├── .gitignore
 ├── .vscode/                 editor configuration (IntelliSense, debug, tasks)
+├── .github/workflows/       CI: every example, pinned and against master
 ├── libopenwch/              git submodule — the library
 ├── rules/
 │   ├── toolchain.mk         toolchain discovery, programmer targets

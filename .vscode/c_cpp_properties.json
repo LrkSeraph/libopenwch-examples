@@ -5,6 +5,7 @@
             "name": "libopenwch",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/libopenwch/include",
                 "${workspaceFolder}/../libopenwch/include",
                 "${workspaceFolder}/../../libopenwch/include",
                 "${workspaceFolder}/../include",
