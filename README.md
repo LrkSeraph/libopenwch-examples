@@ -2,143 +2,89 @@
 
 Working programs built on
 [libopenwch](https://github.com/LrkSeraph/libopenwch), and the shared build
-rules they use.  They serve three purposes: they document how each peripheral
-is meant to be driven, they are what libopenwch's CI builds as an integration
-test, and they are a source of code to copy from.
+rules they use.  Three purposes: they document how each peripheral is driven,
+they are what libopenwch's CI builds as an integration test, and they are code
+to copy from.
 
-**To start your own project, use
+**To start your own project use
 [libopenwch-template](https://github.com/LrkSeraph/libopenwch-template)
-instead** — that is an empty project skeleton, with libopenwch and the
-companion flasher as submodules and nothing else.  This repository is a
-collection of finished examples; it is not a starting point, and the examples
-are not meant to be edited into a product.
-
-Both this repository and `libopenwch-template` carry libopenwch as a git
-submodule rather than vendoring it: the library is something you build
-*against*, and a submodule makes updating it `git submodule update --remote`
-rather than a merge.
+instead** — an empty skeleton with libopenwch and the companion flasher as
+submodules.  This repository is a collection of finished examples, not a
+starting point.
 
 ## Quick start
 
 ```sh
-# 1. Clone the examples; --recurse-submodules brings libopenwch with them.
+# --recurse-submodules brings libopenwch with them
 git clone --recurse-submodules \
     https://github.com/LrkSeraph/libopenwch-examples.git ~/src/libopenwch-examples
-cd ~/src/libopenwch-examples
-
-# 2. Build one.  The first make also builds libopenwch.
-cd examples/blink
-make
-
-# 3. Flash it (needs a WCH-Link programmer, see below)
-make flash
+cd ~/src/libopenwch-examples/examples/blink
+make            # the first make also builds the library
+make flash      # needs a WCH-Link programmer
 ```
 
 If you cloned without `--recurse-submodules`, `git submodule update --init`
-fetches the library, and `make OPENWCH_DIR=/path/to/libopenwch` builds against
-a checkout somewhere else instead.
+fetches the library; `make OPENWCH_DIR=/path/to/libopenwch` builds against a
+checkout somewhere else instead.
 
-`OPENWCH_DIR` is only guessed when you have not set it.  The guess tries the
-submodule `./libopenwch`, then `../libopenwch` next to this checkout, then the
-parent directory, confirming each by looking for `mk/genlink-config.mk`; if none
-matches, the build stops and names the paths it tried.  Setting `OPENWCH_DIR` —
-on the command line, in the environment, or in your own `Makefile` — always
-wins.
-
-Five examples ship here and all build today:
+Five examples ship here, and all build today:
 
 | Example | Device | Family | What it does |
 |---|---|---|---|
-| `examples/blink` | `ch32v003f4p6` | ch32v0 | 48 MHz from the internal RC oscillator, toggles PD1 |
-| `examples/uart_echo` | `ch32v003f4p6` | ch32v0 | USART1 echo at 115200 on PD5/PD6 |
-| `examples/ch582_blink` | `ch582m` | ch5xx58x | 32 MHz crystal + PLL to 60 MHz, toggles PB4 |
-| `examples/ch582_uart_echo` | `ch582m` | ch5xx58x | UART1 echo at 115200 on PA8/PA9 |
-| `examples/ch582_ble_advertise` | `ch582m` | ch5xx58x | Bluetooth LE peripheral: advertises as "libopenwch", LEDs on connect |
+| `blink` | `ch32v003f4p6` | ch32v0 | 48 MHz from the internal RC oscillator, toggles PD1 |
+| `uart_echo` | `ch32v003f4p6` | ch32v0 | USART1 echo at 115200 on PD5/PD6 |
+| `ch582_blink` | `ch582m` | ch5xx58x | 32 MHz crystal + PLL to 60 MHz, toggles PB4 |
+| `ch582_uart_echo` | `ch582m` | ch5xx58x | UART1 echo at 115200 on PA8/PA9 |
+| `ch582_ble_advertise` | `ch582m` | ch5xx58x | BLE peripheral: advertises as "libopenwch", LEDs on connect |
 
 Each example targets one family, because the library archive is per family:
-`blink` uses the CH32V00x `rcc`/`gpio` drivers and therefore only links against
-`libopenwch_ch32v0.a`.  Building it with `DEVICE=ch582m` is expected to fail at
-link time with undefined `rcc_*`/`gpio_*` references.  Within a family, though,
-any sibling part works — `examples/ch582_blink` builds unchanged for
-`ch582m`, `ch583m`, `ch584m` and `ch585m`, and `examples/blink` for every
-CH32V00x part.
-
-## Starting your own project
-
-Not from here — use
-[libopenwch-template](https://github.com/LrkSeraph/libopenwch-template), which
-is an empty project with libopenwch and the companion flasher already wired in
-as submodules.  These examples are references: read one, then take the
-sequence of calls you need.
-
-```sh
-# the closest example to what you are writing, in the template's src/
-less ~/src/libopenwch-examples/examples/ch582_uart_echo/main.c
-```
-
-An example's `main.c` is the whole program: it provides `int main(void)` and
-nothing else.  The reset path, `.data`/`.bss` initialisation, the vector table
-and the entry point all come from libopenwch's QingKe core layer.
+`blink` links only `libopenwch_ch32v0.a`, and building it with `DEVICE=ch582m`
+is expected to fail at link time with undefined `rcc_*`/`gpio_*` references.
+Within a family any sibling part works — `ch582_blink` builds unchanged for
+`ch582m`, `ch583m`, `ch584m` and `ch585m`.
 
 ## Layout
 
 ```
 libopenwch-examples/
-├── README.md  NOTICE  LICENSE
-├── .clang-format            house style, shared with libopenwch
-├── .gitignore
-├── .vscode/                 editor configuration (IntelliSense, debug, tasks)
-├── .github/workflows/       CI: every example, pinned and against master
 ├── libopenwch/              git submodule — the library
 ├── rules/
 │   ├── toolchain.mk         toolchain discovery, programmer targets
 │   └── rules.mk             compile/link/flash rules, OPENWCH_DIR lookup
-└── examples/
-    ├── blink/               CH32V003
-    ├── uart_echo/           CH32V003
-    ├── ch582_blink/         CH58x core-layer bring-up
-    ├── ch582_uart_echo/     CH58x
-    └── ch582_ble_advertise/ CH58x, Bluetooth LE
+├── examples/<name>/         main.c + Makefile, one directory per example
+├── .clang-format  .vscode/  .github/workflows/
+└── README.md  NOTICE  LICENSE
 ```
 
 There is deliberately no top-level `Makefile`: each example is an independent
-project with its own, and the shared rules live in `rules/`.  A top-level
-`make` can still drive them all:
+project, and the shared rules live in `rules/`.  All of them can still be built
+from here:
 
 ```sh
-# build every example
-for d in examples/*/; do make -C "$d" || exit 1; done
+for d in examples/*/; do make -C "$d" || exit 1; make -C "$d" clean; done
 ```
 
 ## The variables that matter
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `PROJECT` | — | basename of the output files (`blink` → `blink.elf`, `blink.bin`, `blink.hex`) |
-| `DEVICE` | example specific | the part number, e.g. `ch32v003f4p6`.  Drives `-march`/`-mabi`, the linker script and which library is linked |
-| `OPENWCH_DIR` | submodule `./libopenwch` | path to the libopenwch checkout |
-| `TEMPLATE_DIR` | `../..` from the example | path to this repository's root |
-| `PREFIX` | auto-detected | toolchain prefix without the trailing `-`, e.g. `riscv64-unknown-elf` |
+| `PROJECT` | — | basename of the output files (`blink` → `blink.elf`, `.bin`, `.hex`) |
+| `DEVICE` | example specific | the part number, e.g. `ch32v003f4p6`.  Drives `-march`/`-mabi`, the linker script and which archive is linked |
+| `OPENWCH_DIR` | submodule `./libopenwch` | where libopenwch is; guessed as submodule → `../libopenwch` → parent, each confirmed by `mk/genlink-config.mk` |
+| `TEMPLATE_DIR` | `../..` from the example | this repository's root |
+| `PREFIX` | auto-detected | toolchain prefix without the trailing `-` |
 | `CFILES` | `main.c` | C sources, basenames only |
-| `AFILES` | — | assembly sources, basenames only |
-| `CXXFILES` | — | C++ sources, basenames only |
 | `BUILD_DIR` | `bin` | object output directory |
-| `OPT` | `-Os` | optimisation level |
-| `CSTD` | `-std=c99` | C standard |
-| `INCLUDES` | — | extra `-I` paths |
-| `DEFS` | — | extra `-D` flags |
-| `CFLAGS` | — | extra compiler flags |
-| `LDFLAGS` | — | extra linker flags |
-| `LDLIBS` | — | extra libraries |
-| `PROGRAMMER` | `minichlink` | which flasher to drive: `minichlink` or `wchlink` |
-| `MINICHLINK` | `minichlink` | minichlink binary |
-| `WRITE_SECTION` | `flash` | minichlink write region |
+| `OPT` / `CSTD` | `-Os` / `-std=c99` | optimisation and C standard |
+| `INCLUDES` / `DEFS` / `CFLAGS` / `LDFLAGS` / `LDLIBS` | — | extra flags, appended |
+| `PROGRAMMER` | `minichlink` | `minichlink` or `wchlink` |
+| `MINICHLINK` / `WRITE_SECTION` | `minichlink` / `flash` | the flasher binary and its write region |
 | `WCHLINK` | `wchlink` | the `wchlink` binary, used with `PROGRAMMER=wchlink` |
-| `LIBOPENWCH_NOSTDLIB` | — | set to `1` to link with `-nostdlib` instead of newlib |
-| `LIBOPENWCH_BLE` | `0` | set to `1` to link WCH's Bluetooth stack, for the `ble_*` layer (CH58x only) |
+| `LIBOPENWCH_NOSTDLIB` | — | `1` links `-nostdlib` with the bundled mini-libc |
+| `LIBOPENWCH_BLE` | `0` | `1` links WCH's Bluetooth stack (CH58x only) |
 
-A new example is a directory with a `main.c` and a `Makefile` no bigger than
-this, dropped into `examples/`:
+A new example is a directory in `examples/` with a `main.c` and a `Makefile` no
+bigger than this:
 
 ```make
 PROJECT     = my_example
@@ -155,81 +101,52 @@ sudo apt-get install -y gcc-riscv64-unknown-elf
 ```
 
 `rules/toolchain.mk` probes `riscv64-unknown-elf`, `riscv64-none-elf`,
-`riscv32-unknown-elf`, `riscv-none-elf`, `riscv64-elf` and `riscv32-elf`, in
-that order.  Override with:
-
-```sh
-make PREFIX=/opt/xpack-riscv-none-elf-gcc/bin/riscv-none-elf
-```
-
-`riscv64-linux-gnu-` is not probed: its crt and libc conventions break
-bare-metal builds.
+`riscv32-unknown-elf`, `riscv-none-elf`, `riscv64-elf` and `riscv32-elf`;
+override with `make PREFIX=/opt/xpack/bin/riscv-none-elf`.
+`riscv64-linux-gnu-` is not probed: its conventions break bare-metal builds.
 
 ## Flashing
 
-[minichlink](https://github.com/cnlohr/ch32fun) drives the WCH-Link and the
-built-in USB ISP bootloader, needs no vendor driver, and works on Linux,
-Windows and macOS.
+[minichlink](https://github.com/cnlohr/ch32fun) is the default: it drives the
+WCH-Link and the built-in USB ISP bootloader and needs no vendor driver.
 
 ```sh
 make flash                      # write the internal flash image
 make monitor                    # printf over the single-wire debug channel
 make unbrick                    # recover a part that stopped answering
-```
-
-Point `MINICHLINK` at the binary if it is not on `PATH`:
-
-```sh
 make flash MINICHLINK=~/src/ch32fun/minichlink/minichlink
 ```
 
-### Choosing the programmer
-
-`PROGRAMMER` picks which tool drives the WCH-LinkE:
-
-| Value | Tool |
-|---|---|
-| `minichlink` | **(default)** minichlink, found on `PATH` or named by `MINICHLINK` |
-| `wchlink` | the [libopenwch-tools](https://github.com/LrkSeraph/libopenwch-tools) companion, found on `PATH` |
-
-```sh
-make flash PROGRAMMER=wchlink
-```
-
-With `PROGRAMMER=wchlink`, `wchlink` is taken from `PATH` unless `WCHLINK`
-names a binary; if there is none, the build stops with an explanation rather
-than a confusing "command not found".  These examples do not carry the
-companion tool — [libopenwch-template](https://github.com/LrkSeraph/libopenwch-template)
-is the repository that wires it in as a submodule.
-
-The default stays `minichlink` for now because `wchlink` is still at milestone
-1 and cannot flash yet.  It becomes the default once it can.
+`PROGRAMMER=wchlink` uses
+[libopenwch-tools](https://github.com/LrkSeraph/libopenwch-tools) instead,
+taken from `PATH` unless `WCHLINK` names a binary.  These examples do not carry
+that tool — libopenwch-template is the repository that wires it in as a
+submodule.  The default stays `minichlink` because `wchlink` cannot flash yet;
+it flips when it can.
 
 ## Output files
 
 | File | Use |
 |---|---|
 | `<project>.elf` | debugging, `objdump`, `gdb` |
-| `<project>.bin` | `make flash`, and the vendor flash tools |
+| `<project>.bin` | `make flash`, vendor flash tools |
 | `<project>.hex` | the WCH official flash utility |
 | `<project>.map` | link map |
-| `<project>.list` | disassembly with source (`make <project>.list`) |
+| `<project>.list` | disassembly with source (`make blink.list`) |
 | `generated.<device>.ld` | the linker script produced from `ld/devices.data` |
 
 ## Notes
 
-* **`-nostartfiles` is mandatory.**  libopenwch supplies its own `_start` and
+* **`-nostartfiles` is mandatory**: libopenwch supplies its own `_start` and
   vector table, so the toolchain's crt0 must not be linked in.  The rule is
   already in `rules/rules.mk`.
 * **Do not add `-march`/`-mabi` by hand.**  They come from `DEVICE` through
   `ld/devices.data`, so the application is always built for the same ISA as the
-  library it links against.  Mixing `ilp32` and `ilp32e` objects silently
-  corrupts the ABI.
+  library it links against; mixing `ilp32` and `ilp32e` silently corrupts the
+  ABI.
 * **`gpio_set_mode()` takes one opaque nibble**, not libopencm3's
-  `(mode, cnf)` pair.  See
-  `include/libopenwch/ch32v0/common/gpio_common_v1.h` for why.
-* **`LIBOPENWCH_BLE=1` links WCH's closed-source Bluetooth stack**, which is
-  not part of `libopenwch_ch5xx58x.a` and is Apache-2.0 rather than LGPL.  It
-  costs roughly 145 KB of flash and needs a heap the application declares
-  with `BLE_HEAP_DEFINE`.  The `ch582_ble_advertise` example sets both
-  switches itself, so it builds with a bare `make`.  See `lib/ble/README`.
+  `(mode, cnf)` pair — see `include/libopenwch/ch32v0/common/gpio_common_v1.h`.
+* **`LIBOPENWCH_BLE=1` links WCH's closed-source Bluetooth stack**, which is not
+  part of `libopenwch_ch5xx58x.a` and is Apache-2.0 rather than LGPL.  It costs
+  about 145 KB of flash and needs a heap the application declares with
+  `BLE_HEAP_DEFINE`.  `ch582_ble_advertise` sets both switches itself.
