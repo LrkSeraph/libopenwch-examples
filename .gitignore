@@ -1,0 +1,17 @@
+# Build output
+bin/
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+generated.*.ld
+
+# Editor / tooling
+.vscode/ipch/
+compile_commands.json
+.cache/
+*.swp
+*~

@@ -1,0 +1,85 @@
+# Build and test libopenwch-template.
+#
+# Every example is built against a real libopenwch checkout, cloned here.  That
+# is the point of a separate template repository: it proves the template works
+# against the library as published, not against whatever happens to be in a
+# developer's tree.
+#
+# LIBOPENWCH_REF pins the library revision.  It defaults to master, which means
+# an upstream break shows up here as a failure -- which is what we want from a
+# template that is supposed to track the library.  Pin it to a tag or commit
+# when preparing a release.
+
+name: build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  # The library can move without this repository changing, so also check
+  # periodically rather than only on push.
+  schedule:
+    - cron: '0 6 * * 1'
+
+env:
+  LIBOPENWCH_REF: master
+
+jobs:
+  examples:
+    name: build every example
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the RISC-V toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-riscv64-unknown-elf
+
+      - name: Check out libopenwch
+        run: |
+          git clone --depth 1 --branch "$LIBOPENWCH_REF" \
+            https://github.com/LrkSeraph/libopenwch.git "$RUNNER_TEMP/libopenwch"
+
+      - name: Report the toolchain
+        run: |
+          riscv64-unknown-elf-gcc --version | head -1
+          git -C "$RUNNER_TEMP/libopenwch" rev-parse --short HEAD
+
+      - name: Build the library
+        run: make -C "$RUNNER_TEMP/libopenwch"
+
+      # The template's own default lookup expects libopenwch *next to* this
+      # checkout, so put it there for the default-path run below.
+      - name: Place libopenwch alongside
+        run: ln -s "$RUNNER_TEMP/libopenwch" ../libopenwch
+
+      - name: Every example, with the default lookup
+        run: |
+          for d in examples/*/; do
+            echo "== $d"
+            make -C "$d" || exit 1
+            make -C "$d" clean
+          done
+
+      - name: Every example, with an explicit OPENWCH_DIR
+        run: |
+          for d in examples/*/; do
+            make -C "$d" OPENWCH_DIR="$RUNNER_TEMP/libopenwch" || exit 1
+            make -C "$d" clean
+          done
+
+      # Debian's toolchain ships no newlib at all, so this is the sharpest
+      # available check that the examples are genuinely freestanding.
+      - name: Freestanding examples
+        run: |
+          for d in examples/blink examples/ch582_blink; do
+            make -C "$d" LIBOPENWCH_NOSTDLIB=1 || exit 1
+            make -C "$d" clean
+          done
+
+      - name: The Bluetooth LE example
+        run: |
+          make -C examples/ch582_ble_advertise || exit 1
+          make -C examples/ch582_ble_advertise clean

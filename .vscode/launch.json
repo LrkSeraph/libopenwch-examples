@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug (minichlink gdbserver)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${workspaceFolderBasename}.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
+            "preLaunchTask": "build",
+            "setupCommands": [
+                { "text": "set architecture riscv:rv32" },
+                { "text": "target remote localhost:3333" },
+                { "text": "monitor reset halt" },
+                { "text": "load" }
+            ]
+        }
+    ]
+}

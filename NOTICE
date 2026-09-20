@@ -1,0 +1,47 @@
+libopenwch-template — provenance and licensing
+=============================================
+
+What this repository is
+-----------------------
+
+The application skeleton for libopenwch: a starting point you copy to begin a
+firmware project.  It is a separate repository from libopenwch for the same
+reason libopencm3-template is separate from libopencm3 -- the library is
+something you build against, this is something you build *from*.
+
+It contains no library code.  Everything here is build rules and example
+programs; the drivers come from a libopenwch checkout that you point
+`OPENWCH_DIR` at.
+
+Licence
+-------
+
+  Everything in this repository       LGPL-3.0-or-later     LICENSE
+
+`LICENSE` carries the GNU LGPL version 3 text, matching libopenwch.
+
+**Your project is yours.**  The LGPL here covers these build rules and example
+programs.  Code you write in your own `main.c`, and the project you assemble
+from this template, are your own work under whatever terms you choose; copying
+`rules/` into your project does not change that.  This is the same intent as
+libopencm3's usual clarification about applications that link the library.
+
+Derived from libopencm3 and libopenwch
+--------------------------------------
+
+`rules/rules.mk` and `rules/toolchain.mk` are derived from libopencm3's
+application makefiles (LGPL-3.0-or-later), and follow libopenwch's adaptations
+of them for RISC-V and generic `riscv64-unknown-elf` toolchains.
+
+  libopencm3        https://github.com/libopencm3/libopencm3     LGPL-3.0+
+  libopenwch        https://github.com/LrkSeraph/libopenwch      LGPL-3.0+
+  libopencm3-template
+                    https://github.com/bonedaddy/libopencm3-template
+                    the model for the PROJECT/DEVICE/OPENWCH_DIR layout
+
+The examples are original to this project.  The CH58x BLE example links WCH's
+closed-source Bluetooth stack, which is **not** part of this repository and is
+Apache-2.0; see libopenwch's NOTICE and `lib/ble/README` for that boundary.
+
+Nothing in this repository is affiliated with or endorsed by Nanjing Qinheng
+Microelectronics.
