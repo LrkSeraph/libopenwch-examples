@@ -12,33 +12,37 @@ instead** — that is an empty project skeleton with libopenwch as a submodule.
 This repository is a collection of finished examples; it is not a starting
 point, and the examples are not meant to be edited into a product.
 
-Both repositories carry libopenwch as an external checkout rather than
-vendoring it: the library is something you build *against*.
+Both this repository and `libopenwch-template` carry libopenwch as a git
+submodule rather than vendoring it: the library is something you build
+*against*, and a submodule makes updating it `git submodule update --remote`
+rather than a merge.
 
 ## Quick start
 
 ```sh
-# 1. Get libopenwch (next to where this repository will live)
-git clone https://github.com/LrkSeraph/libopenwch.git ~/src/libopenwch
-
-# 2. Clone the examples
-git clone https://github.com/LrkSeraph/libopenwch-examples.git ~/src/libopenwch-examples
+# 1. Clone the examples; --recurse-submodules brings libopenwch with them.
+git clone --recurse-submodules \
+    https://github.com/LrkSeraph/libopenwch-examples.git ~/src/libopenwch-examples
 cd ~/src/libopenwch-examples
 
-# 3. Build an example
+# 2. Build one.  The first make also builds libopenwch.
 cd examples/blink
-make                                # finds the sibling libopenwch checkout
-make OPENWCH_DIR=~/src/libopenwch   # or say where it is explicitly
+make
 
-# 4. Flash it (needs a WCH-Link programmer, see below)
+# 3. Flash it (needs a WCH-Link programmer, see below)
 make flash
 ```
 
-`OPENWCH_DIR` is only guessed when you have not set it.  The guess tries
-`../libopenwch` next to this checkout and then the parent directory, confirming
-each by looking for `mk/genlink-config.mk`; if neither matches, the build stops
-and names the paths it tried.  Setting `OPENWCH_DIR` — on the command line, in
-the environment, or in your own `Makefile` — always wins.
+If you cloned without `--recurse-submodules`, `git submodule update --init`
+fetches the library, and `make OPENWCH_DIR=/path/to/libopenwch` builds against
+a checkout somewhere else instead.
+
+`OPENWCH_DIR` is only guessed when you have not set it.  The guess tries the
+submodule `./libopenwch`, then `../libopenwch` next to this checkout, then the
+parent directory, confirming each by looking for `mk/genlink-config.mk`; if none
+matches, the build stops and names the paths it tried.  Setting `OPENWCH_DIR` —
+on the command line, in the environment, or in your own `Makefile` — always
+wins.
 
 Five examples ship here and all build today:
 
@@ -82,6 +86,7 @@ libopenwch-examples/
 ├── .clang-format            house style, shared with libopenwch
 ├── .gitignore
 ├── .vscode/                 editor configuration (IntelliSense, debug, tasks)
+├── libopenwch/              git submodule — the library
 ├── rules/
 │   ├── toolchain.mk         toolchain discovery, programmer targets
 │   └── rules.mk             compile/link/flash rules, OPENWCH_DIR lookup
@@ -108,7 +113,7 @@ for d in examples/*/; do make -C "$d" || exit 1; done
 |---|---|---|
 | `PROJECT` | — | basename of the output files (`blink` → `blink.elf`, `blink.bin`, `blink.hex`) |
 | `DEVICE` | example specific | the part number, e.g. `ch32v003f4p6`.  Drives `-march`/`-mabi`, the linker script and which library is linked |
-| `OPENWCH_DIR` | sibling `../libopenwch` | path to the libopenwch checkout |
+| `OPENWCH_DIR` | submodule `./libopenwch` | path to the libopenwch checkout |
 | `TEMPLATE_DIR` | `../..` from the example | path to this repository's root |
 | `PREFIX` | auto-detected | toolchain prefix without the trailing `-`, e.g. `riscv64-unknown-elf` |
 | `CFILES` | `main.c` | C sources, basenames only |
@@ -125,17 +130,17 @@ for d in examples/*/; do make -C "$d" || exit 1; done
 | `PROGRAMMER` | `minichlink` | which flasher to drive: `minichlink` or `wchlink` |
 | `MINICHLINK` | `minichlink` | minichlink binary |
 | `WRITE_SECTION` | `flash` | minichlink write region |
-| `WCHLINK` | `tools/wchlink/build/wchlink` | the `wchlink` binary, used with `PROGRAMMER=wchlink` |
+| `WCHLINK` | `wchlink` | the `wchlink` binary, used with `PROGRAMMER=wchlink` |
 | `LIBOPENWCH_NOSTDLIB` | — | set to `1` to link with `-nostdlib` instead of newlib |
 | `LIBOPENWCH_BLE` | `0` | set to `1` to link WCH's Bluetooth stack, for the `ble_*` layer (CH58x only) |
 
-A minimal `Makefile` for a new project is therefore just:
+A new example is a directory with a `main.c` and a `Makefile` no bigger than
+this, dropped into `examples/`:
 
 ```make
-PROJECT     = my_app
+PROJECT     = my_example
 DEVICE      = ch32v003f4p6
 TEMPLATE_DIR ?= $(abspath ../..)
-OPENWCH_DIR  ?= $(abspath $(TEMPLATE_DIR)/..)
 CFILES      = main.c
 include $(TEMPLATE_DIR)/rules/rules.mk
 ```
@@ -182,16 +187,17 @@ make flash MINICHLINK=~/src/ch32fun/minichlink/minichlink
 | Value | Tool |
 |---|---|
 | `minichlink` | **(default)** minichlink, found on `PATH` or named by `MINICHLINK` |
-| `wchlink` | the libopenwch-tools companion, from the `tools/wchlink/` submodule or on `PATH` |
+| `wchlink` | the [libopenwch-tools](https://github.com/LrkSeraph/libopenwch-tools) companion, found on `PATH` |
 
 ```sh
 make flash PROGRAMMER=wchlink
 ```
 
-With `PROGRAMMER=wchlink`, the built submodule binary
-(`tools/wchlink/build/wchlink`) is used if it exists, otherwise one on `PATH`;
-if there is neither, the build stops with an explanation rather than a
-confusing "command not found".
+With `PROGRAMMER=wchlink`, `wchlink` is taken from `PATH` unless `WCHLINK`
+names a binary; if there is none, the build stops with an explanation rather
+than a confusing "command not found".  These examples do not carry the
+companion tool — [libopenwch-template](https://github.com/LrkSeraph/libopenwch-template)
+is the repository that wires it in as a submodule.
 
 The default stays `minichlink` for now because `wchlink` is still at milestone
 1 and cannot flash yet.  It becomes the default once it can.

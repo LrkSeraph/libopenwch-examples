@@ -57,14 +57,14 @@ SIZE		:= $(PREFIX)-size
 ##
 ##   minichlink  https://github.com/cnlohr/ch32fun -- external, found on PATH,
 ##               and what these examples have always used.
-##   wchlink     the libopenwch-tools companion, reached through the
-##               tools/wchlink/ submodule.  A plain `git clone` does not
-##               initialise that submodule, and building it needs libusb.
+##   wchlink     the libopenwch-tools companion, found on PATH.  These examples
+##               do not carry it; libopenwch-template is the repository that
+##               wires it in as a submodule, and building it needs libusb.
 ##
 ## PROGRAMMER selects one:
 ##
 ##   minichlink    (default) use minichlink
-##   wchlink       use the built submodule binary, or one on PATH
+##   wchlink       use one on PATH
 ##
 ## The default is still minichlink *on purpose*.  wchlink is at milestone 1 and
 ## cannot flash yet -- its flash subcommand reports "not implemented".  Making
@@ -73,21 +73,21 @@ SIZE		:= $(PREFIX)-size
 ##
 PROGRAMMER	?= minichlink
 
-WCHLINK		?= $(OPENWCH_DIR)/tools/wchlink/build/wchlink
+WCHLINK		?= wchlink
 MINICHLINK	?= minichlink
 MINICHLINK_FLAGS ?= -b
 
 ifeq ($(PROGRAMMER),wchlink)
 
-## Prefer the submodule's own build; fall back to one on PATH.
+## Prefer a binary where one was named, otherwise whatever PATH has.
 WCHLINK_TOOL	?= $(if $(wildcard $(WCHLINK)),$(WCHLINK),wchlink)
 
 ifeq ($(wildcard $(WCHLINK)),)
 ifeq ($(shell command -v wchlink >/dev/null 2>&1 && echo found),)
-$(error PROGRAMMER=wchlink, but no wchlink found. Either build the companion \
-    tool (make -C $(OPENWCH_DIR)/tools/wchlink), or fetch the submodule \
-    (git submodule update --init tools/wchlink), or leave PROGRAMMER at its \
-    default and use minichlink.)
+$(error PROGRAMMER=wchlink, but no wchlink found. Build the companion tool \
+    (https://github.com/LrkSeraph/libopenwch-tools, also available as a \
+    submodule in libopenwch-template) and put it on PATH, or leave PROGRAMMER \
+    at its default and use minichlink.)
 endif
 endif
 

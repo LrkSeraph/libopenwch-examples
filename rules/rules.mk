@@ -76,26 +76,30 @@ include $(TEMPLATE_DIR)/rules/toolchain.mk
 ## in the environment, or in a project's own Makefile -- always wins; this only
 ## guesses when nobody said.
 ##
-## Two layouts are understood:
+## Three layouts are understood, in this order:
 ##
-##   * a sibling checkout, ../libopenwch next to this repository, which is the
-##     libopencm3-template arrangement and what the README recommends;
+##   * the submodule, ./libopenwch inside this repository, which is what a
+##     --recurse-submodules clone gives you and therefore the normal case;
+##   * a sibling checkout, ../libopenwch, for someone who would rather keep one
+##     shared copy of the library than one per repository;
 ##   * this repository sitting inside a libopenwch checkout, where the parent
 ##     directory is libopenwch.
 ##
 ## Each candidate is confirmed by looking for mk/genlink-config.mk, so an
 ## unrelated directory that happens to be next door is never mistaken for the
-## library.  If neither works the build stops here, naming the paths it tried,
+## library.  If none works the build stops here, naming the paths it tried,
 ## rather than failing later with a puzzling "no such file or directory".
 ##
 OPENWCH_DIR	?= $(firstword $(foreach d, \
+		   $(abspath $(TEMPLATE_DIR)/libopenwch) \
 		   $(abspath $(TEMPLATE_DIR)/../libopenwch) \
 		   $(abspath $(TEMPLATE_DIR)/..), \
 		   $(if $(wildcard $(d)/mk/genlink-config.mk),$(d))))
 
 ifeq ($(strip $(OPENWCH_DIR)),)
-$(error Cannot find libopenwch. Pass OPENWCH_DIR=/path/to/libopenwch, or \
-    check libopenwch out so that it sits next to this repository. Looked in \
+$(error Cannot find libopenwch. Pass OPENWCH_DIR=/path/to/libopenwch, or run \
+    `git submodule update --init` to fetch the submodule. Looked in \
+    $(abspath $(TEMPLATE_DIR)/libopenwch), \
     $(abspath $(TEMPLATE_DIR)/../libopenwch) and $(abspath $(TEMPLATE_DIR)/..).)
 endif
 
@@ -256,6 +260,18 @@ clean:
 	$(Q)rm -f generated.*.ld
 
 .PHONY: all clean flash size
+
+##
+## Build the library on demand.  $(LIBDEPS) is the archive for the part
+## selected by DEVICE; when it is missing -- a fresh clone, or a family that
+## has not been built yet -- this builds libopenwch once, so that a single
+## `make` in an example is enough to get started.  On every later build the
+## archive is already there and nothing happens; a library that has changed is
+## picked up with `make -C $(OPENWCH_DIR)`.
+##
+$(LIBDEPS):
+	@printf "  MAKE    libopenwch\n"
+	$(Q)$(MAKE) -C $(OPENWCH_DIR)
 
 -include $(OBJS:.o=.d)
 

@@ -12,9 +12,9 @@ It is **not** a project template.  If you want a starting point for your own
 firmware, use libopenwch-template instead; this repository is what you read to
 see how a feature is driven.
 
-It contains no library code.  Everything here is build rules and example
-programs; the drivers come from a libopenwch checkout that you point
-`OPENWCH_DIR` at.
+It contains no library code: the drivers come from the libopenwch submodule at
+`libopenwch/`, which is a checkout of the library's own repository and carries
+its own licence.  Nothing in the submodule is modified here.
 
 Licence
 -------
