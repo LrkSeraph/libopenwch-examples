@@ -1,13 +1,13 @@
-# Build and test libopenwch-template.
+# Build and test libopenwch-examples.
 #
 # Every example is built against a real libopenwch checkout, cloned here.  That
-# is the point of a separate template repository: it proves the template works
-# against the library as published, not against whatever happens to be in a
+# is the point of keeping the examples in a separate repository: they prove the
+# library works as published, not against whatever happens to be in a
 # developer's tree.
 #
 # LIBOPENWCH_REF pins the library revision.  It defaults to master, which means
-# an upstream break shows up here as a failure -- which is what we want from a
-# template that is supposed to track the library.  Pin it to a tag or commit
+# an upstream break shows up here as a failure -- which is what we want from
+# examples that are supposed to track the library.  Pin it to a tag or commit
 # when preparing a release.
 
 name: build
@@ -50,7 +50,7 @@ jobs:
       - name: Build the library
         run: make -C "$RUNNER_TEMP/libopenwch"
 
-      # The template's own default lookup expects libopenwch *next to* this
+      # The rules' own default lookup expects libopenwch *next to* this
       # checkout, so put it there for the default-path run below.
       - name: Place libopenwch alongside
         run: ln -s "$RUNNER_TEMP/libopenwch" ../libopenwch

@@ -1,5 +1,5 @@
 ##
-## This file is part of the libopenwch template.
+## This file is part of the libopenwch examples.
 ##
 ## Copyright (C) 2025 libopenwch contributors
 ##
@@ -78,9 +78,9 @@ include $(TEMPLATE_DIR)/rules/toolchain.mk
 ##
 ## Two layouts are understood:
 ##
-##   * a sibling checkout, ../libopenwch next to this template, which is the
+##   * a sibling checkout, ../libopenwch next to this repository, which is the
 ##     libopencm3-template arrangement and what the README recommends;
-##   * this template sitting inside a libopenwch checkout, where the parent
+##   * this repository sitting inside a libopenwch checkout, where the parent
 ##     directory is libopenwch.
 ##
 ## Each candidate is confirmed by looking for mk/genlink-config.mk, so an
@@ -95,7 +95,7 @@ OPENWCH_DIR	?= $(firstword $(foreach d, \
 
 ifeq ($(strip $(OPENWCH_DIR)),)
 $(error Cannot find libopenwch. Pass OPENWCH_DIR=/path/to/libopenwch, or \
-    check libopenwch out so that it sits next to this template. Looked in \
+    check libopenwch out so that it sits next to this repository. Looked in \
     $(abspath $(TEMPLATE_DIR)/../libopenwch) and $(abspath $(TEMPLATE_DIR)/..).)
 endif
 

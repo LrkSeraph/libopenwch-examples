@@ -1,13 +1,16 @@
-libopenwch-template — provenance and licensing
-=============================================
+libopenwch-examples — provenance and licensing
+==============================================
 
 What this repository is
 -----------------------
 
-The application skeleton for libopenwch: a starting point you copy to begin a
-firmware project.  It is a separate repository from libopenwch for the same
-reason libopencm3-template is separate from libopencm3 -- the library is
-something you build against, this is something you build *from*.
+A collection of example firmware programs for libopenwch, plus the small
+`rules/` layer that lets each example be built with a plain `make`.  It exists
+to demonstrate the library and to serve as libopenwch's integration test.
+
+It is **not** a project template.  If you want a starting point for your own
+firmware, use libopenwch-template instead; this repository is what you read to
+see how a feature is driven.
 
 It contains no library code.  Everything here is build rules and example
 programs; the drivers come from a libopenwch checkout that you point
@@ -21,10 +24,10 @@ Licence
 `LICENSE` carries the GNU LGPL version 3 text, matching libopenwch.
 
 **Your project is yours.**  The LGPL here covers these build rules and example
-programs.  Code you write in your own `main.c`, and the project you assemble
-from this template, are your own work under whatever terms you choose; copying
-`rules/` into your project does not change that.  This is the same intent as
-libopencm3's usual clarification about applications that link the library.
+programs.  Code you write in your own project is your own work under whatever
+terms you choose; copying `rules/` into your project does not change that.
+This is the same intent as libopencm3's usual clarification about applications
+that link the library.
 
 Derived from libopencm3 and libopenwch
 --------------------------------------

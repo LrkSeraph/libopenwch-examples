@@ -1,5 +1,5 @@
 /*
- * This file is part of the libopenwch template.
+ * This file is part of the libopenwch examples.
  *
  * Copyright (C) 2025 libopenwch contributors
  *

@@ -1,5 +1,5 @@
 ##
-## This file is part of the libopenwch template.
+## This file is part of the libopenwch examples.
 ##
 ## Copyright (C) 2025 libopenwch contributors
 ##
@@ -31,7 +31,7 @@ PROJECT		= blink
 ##	make DEVICE=ch32v002f4p6
 DEVICE		?= ch32v003f4p6
 
-## Where the template's shared rules live, and where libopenwch is.
+## Where the shared rules live, and where libopenwch is.
 TEMPLATE_DIR	?= $(abspath ../..)
 
 ## Sources.  Add more with CFILES += other.c

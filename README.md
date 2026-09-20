@@ -1,28 +1,29 @@
-# libopenwch application template
+# libopenwch examples
 
-A starting point for a firmware project built on
-[libopenwch](https://github.com/LrkSeraph/libopenwch).  Clone it as your
-project, point it at a libopenwch checkout, and start writing `main.c`.
+Working programs built on
+[libopenwch](https://github.com/LrkSeraph/libopenwch), and the shared build
+rules they use.  They serve three purposes: they document how each peripheral
+is meant to be driven, they are what libopenwch's CI builds as an integration
+test, and they are a source of code to copy from.
 
-This is the RISC-V/WCH counterpart of
-[libopencm3-template](https://github.com/bonedaddy/libopencm3-template): the
-same `rules.mk` idea, the same `PROJECT`/`DEVICE`/`OPENWCH_DIR` variables, and
-a `make flash` that works without vendor tooling.
+**To start your own project, use
+[libopenwch-template](https://github.com/LrkSeraph/libopenwch-template)
+instead** — that is an empty project skeleton with libopenwch as a submodule.
+This repository is a collection of finished examples; it is not a starting
+point, and the examples are not meant to be edited into a product.
 
-It is a **separate repository** from the library, for the same reason
-libopencm3-template is separate from libopencm3: the library is something you
-build *against*, this is something you build *from*.  No driver code lives
-here.
+Both repositories carry libopenwch as an external checkout rather than
+vendoring it: the library is something you build *against*.
 
 ## Quick start
 
 ```sh
-# 1. Get libopenwch (next to where your project will live)
+# 1. Get libopenwch (next to where this repository will live)
 git clone https://github.com/LrkSeraph/libopenwch.git ~/src/libopenwch
 
-# 2. Clone this template as your project
-git clone https://github.com/LrkSeraph/libopenwch-template.git ~/src/my-firmware
-cd ~/src/my-firmware
+# 2. Clone the examples
+git clone https://github.com/LrkSeraph/libopenwch-examples.git ~/src/libopenwch-examples
+cd ~/src/libopenwch-examples
 
 # 3. Build an example
 cd examples/blink
@@ -34,7 +35,7 @@ make flash
 ```
 
 `OPENWCH_DIR` is only guessed when you have not set it.  The guess tries
-`../libopenwch` next to this template and then the parent directory, confirming
+`../libopenwch` next to this checkout and then the parent directory, confirming
 each by looking for `mk/genlink-config.mk`; if neither matches, the build stops
 and names the paths it tried.  Setting `OPENWCH_DIR` — on the command line, in
 the environment, or in your own `Makefile` — always wins.
@@ -59,14 +60,14 @@ CH32V00x part.
 
 ## Starting your own project
 
-This repository is meant to become your project: keep the checkout, rename it
-if you like, and delete the examples you do not need.  If you would rather keep
-them as references, copy one instead:
+Not from here — use
+[libopenwch-template](https://github.com/LrkSeraph/libopenwch-template), which
+is an empty project with libopenwch already wired in as a submodule.  These
+examples are references: read one, copy the parts you need, or copy a whole
+example into your own project and adapt it.
 
 ```sh
-cp -r examples/blink examples/my_app
-$EDITOR examples/my_app/main.c
-cd examples/my_app && make flash
+cp -r ~/src/libopenwch-examples/examples/blink ~/src/my-firmware/src
 ```
 
 `main.c` only has to provide `int main(void)`.  Everything else — the reset
@@ -76,7 +77,7 @@ comes from libopenwch's QingKe core layer.
 ## Layout
 
 ```
-libopenwch-template/
+libopenwch-examples/
 ├── README.md  NOTICE  LICENSE
 ├── .clang-format            house style, shared with libopenwch
 ├── .gitignore
@@ -92,8 +93,8 @@ libopenwch-template/
     └── ch582_ble_advertise/ CH58x, Bluetooth LE
 ```
 
-There is deliberately no top-level `Makefile`: a firmware project is one
-directory with one `Makefile`, and each example is independent.  A top-level
+There is deliberately no top-level `Makefile`: each example is an independent
+project with its own, and the shared rules live in `rules/`.  A top-level
 `make` can still drive them all:
 
 ```sh
@@ -107,8 +108,8 @@ for d in examples/*/; do make -C "$d" || exit 1; done
 |---|---|---|
 | `PROJECT` | — | basename of the output files (`blink` → `blink.elf`, `blink.bin`, `blink.hex`) |
 | `DEVICE` | example specific | the part number, e.g. `ch32v003f4p6`.  Drives `-march`/`-mabi`, the linker script and which library is linked |
-| `OPENWCH_DIR` | sibling of the template | path to the libopenwch checkout |
-| `TEMPLATE_DIR` | `../..` from the example | path to this template directory |
+| `OPENWCH_DIR` | sibling `../libopenwch` | path to the libopenwch checkout |
+| `TEMPLATE_DIR` | `../..` from the example | path to this repository's root |
 | `PREFIX` | auto-detected | toolchain prefix without the trailing `-`, e.g. `riscv64-unknown-elf` |
 | `CFILES` | `main.c` | C sources, basenames only |
 | `AFILES` | — | assembly sources, basenames only |

@@ -1,5 +1,5 @@
 ##
-## This file is part of the libopenwch template.
+## This file is part of the libopenwch examples.
 ##
 ## Copyright (C) 2025 libopenwch contributors
 ##
@@ -56,7 +56,7 @@ SIZE		:= $(PREFIX)-size
 ## Two programmer tools can drive a WCH-LinkE:
 ##
 ##   minichlink  https://github.com/cnlohr/ch32fun -- external, found on PATH,
-##               and what this template has always used.
+##               and what these examples have always used.
 ##   wchlink     the libopenwch-tools companion, reached through the
 ##               tools/wchlink/ submodule.  A plain `git clone` does not
 ##               initialise that submodule, and building it needs libusb.
