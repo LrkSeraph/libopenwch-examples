@@ -53,11 +53,12 @@ static void delay(volatile uint32_t loops) {
 }
 
 int main(void) {
-	struct rcc_clock_scale clocks;
-
-	/* Run at 48 MHz from the internal 24 MHz RC oscillator and its PLL. */
-	rcc_clock_setup_hsi_48mhz();
-	rcc_get_clocks_freq(&clocks);
+	/*
+	 * Run at 48 MHz from the internal 24 MHz RC oscillator and its PLL:
+	 * one call names the whole tree, and it leaves the resulting
+	 * frequencies in the rcc_*_frequency variables.
+	 */
+	rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_PLL_HSI_48MHZ]);
 
 	/* Power the port before configuring it. */
 	rcc_periph_clock_enable(RCC_GPIOD);

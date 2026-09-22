@@ -67,11 +67,9 @@ static void console_puts(const char *s) {
 }
 
 int main(void) {
-	uint32_t sysclk;
 
 	/* 60 MHz from the PLL.  This powers XT32M first. */
 	clk_set_sys_clock(CLK_SOURCE_PLL_60MHZ);
-	sysclk = clk_get_sys_clock();
 
 	/*
 	 * Pin function selection is two steps on this family: enable the remap
@@ -83,7 +81,7 @@ int main(void) {
 	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_PP_5MA, GPIO8);
 	gpio_set_mode(GPIOA, GPIO_MODE_INPUT_FLOAT, GPIO9);
 
-	/* 8N1, and the baud rate from the clock we actually measured. */
+	/* 8N1.  The baud rate divider comes from the published system clock. */
 	uart_set_baudrate(UART1, BAUD);
 	uart_set_databits(UART1, UART_DATA_8BITS);
 	uart_set_stopbits(UART1, UART_STOPBITS_1);
@@ -91,7 +89,7 @@ int main(void) {
 	uart_enable(UART1);
 
 	console_puts("\r\nlibopenwch ch582_uart_echo\r\nsysclk = ");
-	console_putu(sysclk);
+	console_putu(rcc_sysclk_frequency);
 	console_puts(" Hz, baud = ");
 	console_putu(BAUD);
 	console_puts("\r\n");

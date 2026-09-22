@@ -113,17 +113,15 @@ static void console_putu(uint32_t value) {
 }
 
 int main(void) {
-	struct rcc_clock_scale clocks;
 	uint32_t count = 0;
 
-	rcc_clock_setup_hsi_48mhz();
-	rcc_get_clocks_freq(&clocks);
+	rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_PLL_HSI_48MHZ]);
 
 	console_init();
 
 	console_puts("\r\nlibopenwch uart_echo\r\n");
 	console_puts("sysclk = ");
-	console_putu(clocks.sysclk);
+	console_putu(rcc_sysclk_frequency);
 	console_puts(" Hz, baud = ");
 	console_putu(BAUD);
 	console_puts("\r\n");

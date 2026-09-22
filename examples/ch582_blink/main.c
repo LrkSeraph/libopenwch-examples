@@ -48,17 +48,17 @@
 #define LED_PIN GPIO4
 
 int main(void) {
-	uint32_t sysclk;
-
-	/* 60 MHz from the PLL.  This powers XT32M first. */
+	/*
+	 * 60 MHz from the PLL: one call names the tree and powers XT32M
+	 * first, and it leaves the frequency in rcc_sysclk_frequency.
+	 */
 	clk_set_sys_clock(CLK_SOURCE_PLL_60MHZ);
-	sysclk = clk_get_sys_clock();
 
 	/* Drive the LED pin push-pull. */
 	gpio_set_mode(LED_PORT, GPIO_MODE_OUTPUT_PP_5MA, LED_PIN);
 
 	/* Use SysTick as the time base: 1 ms ticks. */
-	qingke_systick_set_frequency(sysclk);
+	qingke_systick_set_frequency(rcc_sysclk_frequency);
 	systick_set_clock_source(1); /* run from the system clock */
 	systick_clear_interrupt();
 	systick_enable_counter();
