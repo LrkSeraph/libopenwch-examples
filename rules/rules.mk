@@ -168,22 +168,13 @@ LDLIBS		+= $(OPENWCH_DIR)/lib/ble/wch/LIBCH58xBLE.a
 endif
 
 ##
-## libc.
+## libc: newlib when the toolchain has it, the bundled mini-libc when it does
+## not.  The choice is probed (see mk/libc-config.mk), because whether a
+## toolchain was built with newlib for this multilib is a property of the
+## toolchain -- some distributions ship none at all, and the failure is a
+## "cannot find -lc" at the very end of the build.
 ##
-## By default the toolchain's newlib is used.  A toolchain built without newlib
-## -- for instance Debian's gcc-riscv64-unknown-elf, which ships none for the
-## rv32e or rv32imac multilibs -- can be used by setting LIBOPENWCH_NOSTDLIB=1,
-## which links the freestanding mini-libc that libopenwch builds for exactly
-## this case.  The archive is per family, so it carries the right ISA.
-##
-ifeq ($(LIBOPENWCH_NOSTDLIB),1)
-TGT_LDFLAGS	+= -nostdlib
-LDLIBS		+= $(OPENWCH_DIR)/lib/libopenwch_mini_libc_$(genlink_family).a -lgcc
-else
-TGT_LDFLAGS	+= -Wl,--start-group
-LDLIBS		+= -lc -lgcc -lnosys
-TGT_LDFLAGS	+= -Wl,--end-group
-endif
+include $(OPENWCH_DIR)/mk/libc-config.mk
 
 # Never let make try to check out a source file from RCS/SCCS.
 %: %,v
