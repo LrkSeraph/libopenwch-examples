@@ -20,9 +20,9 @@
 /*
  * SPI NOR flash CRC32 test for a CH32V003.
  *
- * The hardware SPI1 bus is remapped to PC5 (SCK), PC6 (MOSI) and PC7 (MISO).
- * A GPIO acts as chip select; PC4 is used by default and can be changed by
- * editing FLASH_CS_PORT/FLASH_CS_PIN below.
+ * The hardware SPI1 bus uses its default pins PC5 (SCK), PC6 (MOSI) and
+ * PC7 (MISO).  A GPIO acts as chip select; PC4 is used by default and can be
+ * changed by editing FLASH_CS_PORT/FLASH_CS_PIN below.
  *
  * The firmware probes the flash with JEDEC RDID first.  If no flash answers it
  * prints an explicit error and stops; otherwise it reports the ID, manufacturer,
@@ -177,8 +177,7 @@ static void spi_flash_init(void) {
 	rcc_periph_clock_enable(RCC_GPIOC);
 	rcc_periph_clock_enable(RCC_SPI1);
 
-	/* SPI1 remap: PC5 = SCK, PC6 = MOSI, PC7 = MISO. */
-	gpio_primary_remap(GPIO_REMAP_SPI1);
+	/* Default SPI1 pins: PC5 = SCK, PC6 = MOSI, PC7 = MISO. */
 
 	/* PC4 is a GPIO chip select, not the SPI NSS alternate function. */
 	gpio_set_mode(FLASH_CS_PORT, GPIO_MODE_OUT_PP, FLASH_CS_PIN);

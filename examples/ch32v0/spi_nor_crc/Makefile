@@ -20,7 +20,7 @@
 ##
 ## CH32V003 SPI NOR flash CRC32 test.
 ##
-## SPI1 remap pins: PC5 = SCK, PC6 = MOSI, PC7 = MISO.
+## SPI1 default pins: PC5 = SCK, PC6 = MOSI, PC7 = MISO.
 ## PC4 is a software chip select; USART1 TX is PD5, 115200 8N1.
 ##
 ## Override the number of 4 KiB pages:
