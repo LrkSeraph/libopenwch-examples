@@ -159,18 +159,24 @@ static void print_reset_flags(uint32_t flags) {
 }
 
 static void start_iwdg(void) {
+	uint32_t timeout;
+
 	uart_puts("IWDG: enable and never reload; reset expected\r\n");
 
 	iwdg_write_access_enable(IWDG);
 	iwdg_set_prescaler(IWDG, IWDG_PRESCALER);
 
-	while (iwdg_get_flag(IWDG, IWDG_FLAG_PVU) != 0u) {
+	for (timeout = 0;
+	     timeout < 1000000u && iwdg_get_flag(IWDG, IWDG_FLAG_PVU) != 0u;
+	     timeout++) {
 		;
 	}
 
 	iwdg_set_reload(IWDG, IWDG_RELOAD);
 
-	while (iwdg_get_flag(IWDG, IWDG_FLAG_RVU) != 0u) {
+	for (timeout = 0;
+	     timeout < 1000000u && iwdg_get_flag(IWDG, IWDG_FLAG_RVU) != 0u;
+	     timeout++) {
 		;
 	}
 
@@ -178,7 +184,9 @@ static void start_iwdg(void) {
 	iwdg_enable(IWDG);
 
 	/* IWDG enable starts LSI if it was off. */
-	while ((RCC_RSTSCKR & RCC_RSTSCKR_LSIRDY) == 0u) {
+	for (timeout = 0;
+	     timeout < 1000000u && (RCC_RSTSCKR & RCC_RSTSCKR_LSIRDY) == 0u;
+	     timeout++) {
 		;
 	}
 
