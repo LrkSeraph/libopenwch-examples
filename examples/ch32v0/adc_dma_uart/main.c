@@ -37,10 +37,10 @@
 
 #define UART_BAUD 115200u
 
-/* PA1 is ADC channel 1 on the CH32V003. */
+/* PA1 is ADC channel 1 on the CH32V003.  Its ADC is 10-bit. */
 #define ADC_CHANNEL_PA1 1u
 #define ADC_SAMPLE_COUNT 128u
-#define ADC_FULL_SCALE 4095u
+#define ADC_FULL_SCALE 1023u
 #define ADC_VREF_MV 3300u
 
 /* DMA1 channel 1 is the hard-wired ADC1 request channel. */
