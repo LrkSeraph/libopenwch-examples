@@ -28,7 +28,7 @@ PROJECT= adc_dma_uart
 
 DEVICE?= ch32v003f4p6
 
-TEMPLATE_DIR?= $(abspath ../..)
+TEMPLATE_DIR?= $(abspath ../../..)
 
 CFILES= main.c
 

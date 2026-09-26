@@ -18,28 +18,31 @@
 ##
 
 ##
-## Blink for a CH32V003 board with an active-low LED on PC2.
+## CH582M Bluetooth LE peripheral.
 ##
-## This is the smallest complete libopenwch application.  Copy this directory
-## to start a new project.
+## LIBOPENWCH_BLE=1 links WCH's closed-source Bluetooth stack, which is what
+## the ble_* layer calls into.  Without it the link fails with undefined
+## references to BLE_LibInit and friends, which is the intended failure mode:
+## the stack is not part of libopenwch_ch5xx58x.a.
+##
+##   make LIBOPENWCH_BLE=1
+##
+## The default is 0, so an application that does not use Bluetooth never pulls
+## the stack in.
 ##
 
-PROJECT		= blink
+PROJECT		= ch582_ble_advertise
 
-## The part number drives -march/-mabi and the linker script.  Override on the
-## command line to build for a sibling part, e.g.
-##	make DEVICE=ch32v002f4p6
-DEVICE		?= ch32v003f4p6
+## Only the CH58x family has a Bluetooth stack.
+DEVICE		?= ch582m
 
-## Where the shared rules live, and where libopenwch is.
-TEMPLATE_DIR	?= $(abspath ../..)
+TEMPLATE_DIR	?= $(abspath ../../..)
 
-## Sources.  Add more with CFILES += other.c
 CFILES		= main.c
 
-## Extra settings, e.g.
-##	CFLAGS += -DMY_OPTION=1
-##	INCLUDES += -I../shared
-##	DEFS += -DBOARD_REV=2
+## The stack needs memcpy(), and this example is built freestanding so that it
+## works on toolchains without newlib (Debian's, for instance).
+LIBOPENWCH_BLE		?= 1
+LIBOPENWCH_NOSTDLIB	?= 1
 
 include $(TEMPLATE_DIR)/rules/rules.mk

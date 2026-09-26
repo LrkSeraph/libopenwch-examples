@@ -18,15 +18,22 @@
 ##
 
 ##
-## CH58x UART echo, the counterpart of examples/uart_echo.
+## CH58x bring-up: start the 32 MHz crystal, run the PLL at 48 MHz and drive a
+## pin.  This is the CH58x counterpart of the CH32V003 blink.
 ##
-## Default pins are UART1 on PA8 (TX) / PA9 (RX) at 115200 8N1.
+## NOTE: the CH58x peripheral drivers (including the RWA safe-access sequence
+## that the clock and GPIO registers require) are the P3 milestone and are not
+## implemented yet.  Until then this example exercises only the core layer:
+## vector table, interrupt control and delay, which is already enough to prove
+## that the family links and boots with the right memory layout.
 ##
 
-PROJECT		= ch582_uart_echo
+PROJECT		= ch582_blink
+
+## CH582/CH583/CH584/CH585 all resolve to the ch5xx58x family.
 DEVICE		?= ch582m
 
-TEMPLATE_DIR	?= $(abspath ../..)
+TEMPLATE_DIR	?= $(abspath ../../..)
 
 CFILES		= main.c
 

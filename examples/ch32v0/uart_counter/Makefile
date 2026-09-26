@@ -18,17 +18,17 @@
 ##
 
 ##
-## USART echo for a CH32V003 board.
+## CH32V003 USART counter.
 ##
-## Wiring: PD5 = TX, PD6 = RX at 115200 8N1.  Those are the "partial remap 1"
-## pins, which is what the WCH evaluation board breaks out.
+## Prints chip id and sysclk, then sends a counter once per second on
+## PD5 (TX) at 115200 8N1.
 ##
 
-PROJECT		= uart_echo
-DEVICE		?= ch32v003f4p6
+PROJECT= uart_counter
+DEVICE?= ch32v003f4p6
 
-TEMPLATE_DIR	?= $(abspath ../..)
+TEMPLATE_DIR?= $(abspath ../../..)
 
-CFILES		= main.c
+CFILES= main.c
 
 include $(TEMPLATE_DIR)/rules/rules.mk

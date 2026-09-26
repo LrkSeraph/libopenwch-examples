@@ -18,23 +18,17 @@
 ##
 
 ##
-## CH58x bring-up: start the 32 MHz crystal, run the PLL at 48 MHz and drive a
-## pin.  This is the CH58x counterpart of the CH32V003 blink.
+## CH58x UART counter.
 ##
-## NOTE: the CH58x peripheral drivers (including the RWA safe-access sequence
-## that the clock and GPIO registers require) are the P3 milestone and are not
-## implemented yet.  Until then this example exercises only the core layer:
-## vector table, interrupt control and delay, which is already enough to prove
-## that the family links and boots with the right memory layout.
+## Prints chip id and sysclk, then sends a counter once per second on
+## PA8 (TX) at 115200 8N1.
 ##
 
-PROJECT		= ch582_blink
+PROJECT= ch582_uart_counter
+DEVICE?= ch582m
 
-## CH582/CH583/CH584/CH585 all resolve to the ch5xx58x family.
-DEVICE		?= ch582m
+TEMPLATE_DIR?= $(abspath ../../..)
 
-TEMPLATE_DIR	?= $(abspath ../..)
-
-CFILES		= main.c
+CFILES= main.c
 
 include $(TEMPLATE_DIR)/rules/rules.mk
