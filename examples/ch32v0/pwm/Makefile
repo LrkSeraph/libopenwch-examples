@@ -18,13 +18,13 @@
 ##
 
 ##
-## CH32V003 PWM example on PC2.
+## CH32V003 breathing-light PWM example.
 ##
-## PC2 is routed to TIM2_CH2 (TIM2 partial remap 1) and the duty cycle is
-## swept from 0 % to 100 %; progress is printed on USART1 (PD5, 115200 8N1).
+## PC2 is routed to TIM2_CH2 (TIM2 partial remap 1) and driven with a
+## raised-cosine brightness curve; progress is printed on USART1 (PD5, 115200 8N1).
 ##
 
-PROJECT= pwm_pc2
+PROJECT= pwm
 
 DEVICE?= ch32v003f4p6
 

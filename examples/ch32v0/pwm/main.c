@@ -160,7 +160,7 @@ int main(void) {
 	delay_init();
 	pwm_init();
 
-	uart_puts("\r\nlibopenwch PC2 breathing-light example\r\n");
+	uart_puts("\r\nlibopenwch PWM breathing-light example\r\n");
 	uart_puts("TIM2_CH2, 1 kHz PWM, raised-cosine brightness\r\n");
 
 	for (;;) {
