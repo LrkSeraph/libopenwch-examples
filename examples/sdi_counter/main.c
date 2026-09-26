@@ -136,6 +136,7 @@ int main(void) {
 	/* Delay uses SysTick; the SDI channel itself does not need the PLL. */
 	rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_PLL_HSI_48MHZ]);
 	qingke_systick_set_frequency(rcc_sysclk_frequency);
+	systick_set_clock_source(1); /* HCLK, not the default HCLK/8 */
 
 	sdi_init();
 

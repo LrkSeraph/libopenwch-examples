@@ -117,6 +117,7 @@ int main(void) {
 
 	/* Let the delay helper convert milliseconds to SysTick ticks. */
 	qingke_systick_set_frequency(rcc_sysclk_frequency);
+	systick_set_clock_source(1); /* HCLK, not the default HCLK/8 */
 
 	console_init();
 
