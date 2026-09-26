@@ -21,8 +21,8 @@
  * Blink — the smallest useful libopenwch program.
  *
  * It brings the part up on the internal oscillator, runs at 48 MHz, and
- * toggles an LED with a visible delay.  There is no SysTick setup here on
- * purpose: the delay loop is a plain busy-wait, so the example has no
+ * blinks an active-low LED with a visible delay.  There is no SysTick setup
+ * here on purpose: the delay loop is a plain busy-wait, so the example has no
  * dependencies beyond the RCC and GPIO drivers.
  *
  * Build:   make
@@ -35,12 +35,12 @@
 #include <libopenwch/qingke/assert.h>
 
 /*
- * Board wiring.  On the WCH CH32V003F4P6-EVT-R0 evaluation board the LED sits
- * on PD1 (the LED is between PD1 and the 3.3 V rail, so driving the pin low
- * lights it).  Change these two lines for your own board.
+ * Board wiring.  This board has the LED on PC2, between PC2 and the 3.3 V
+ * rail, so driving PC2 low lights it.  Change these two lines for your own
+ * board.
  */
-#define LED_PORT GPIOD
-#define LED_PIN GPIO1
+#define LED_PORT GPIOC
+#define LED_PIN GPIO2
 
 /* Delay length, in loop iterations.  Roughly 250 ms at 48 MHz. */
 #define DELAY_LOOPS 600000u
@@ -61,7 +61,13 @@ int main(void) {
 	rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_PLL_HSI_48MHZ]);
 
 	/* Power the port before configuring it. */
-	rcc_periph_clock_enable(RCC_GPIOD);
+	rcc_periph_clock_enable(RCC_GPIOC);
+
+	/*
+	 * The LED is active low, so drive the output latch high before the pin
+	 * becomes an output.  This keeps the LED off during startup.
+	 */
+	gpio_set(LED_PORT, LED_PIN);
 
 	/*
 	 * Push-pull output.  The nibble is WCH's opaque pin configuration
@@ -71,6 +77,7 @@ int main(void) {
 	gpio_set_mode(LED_PORT, GPIO_MODE_OUT_PP, LED_PIN);
 
 	for (;;) {
+		/* Active low: this toggles the LED between off and on. */
 		gpio_toggle(LED_PORT, LED_PIN);
 		delay(DELAY_LOOPS);
 	}

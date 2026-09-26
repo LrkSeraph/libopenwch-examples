@@ -18,7 +18,7 @@
 ##
 
 ##
-## Blink for a CH32V003 board (the WCH CH32V003F4P6-EVT-R0 and most clones).
+## Blink for a CH32V003 board with an active-low LED on PC2.
 ##
 ## This is the smallest complete libopenwch application.  Copy this directory
 ## to start a new project.
