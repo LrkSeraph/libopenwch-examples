@@ -43,7 +43,6 @@
 #include <libopenwch/ch32v0/rcc.h>
 #include <libopenwch/ch32v0/usart.h>
 #include <libopenwch/ch32v0/wwdg.h>
-#include <libopenwch/qingke/systick.h>
 
 #define UART_BAUD 115200u
 
@@ -89,13 +88,6 @@ static void uart_puts(const char *s) {
 	while (*s != '\0') {
 		usart_send_blocking(USART1, (uint8_t)*s++);
 	}
-}
-
-static void delay_init(void) {
-	qingke_systick_set_frequency(rcc_sysclk_frequency);
-	systick_set_clock_source(1); /* run from HCLK */
-	systick_clear_interrupt();
-	systick_enable_counter();
 }
 
 static void uart_putu(uint32_t value) {
@@ -225,7 +217,6 @@ int main(void) {
 	rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_PLL_HSI_48MHZ]);
 
 	uart_init();
-	delay_init();
 
 	flags = rcc_get_reset_flags();
 
@@ -283,10 +274,10 @@ int main(void) {
 		uart_puts("\r\n");
 	}
 
+	uart_puts("watchdog self-test: DONE (reset to run again)\r\n");
+
 	for (;;) {
-		uart_puts(
-		    "watchdog self-test complete; reset to run again\r\n");
-		qingke_delay_ms(1000u);
+		;
 	}
 
 	/* Not reached. */
