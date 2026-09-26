@@ -25,6 +25,7 @@ against another checkout with `make OPENWCH_DIR=/path/to/libopenwch`.
 |---|---|---|---|
 | `blink` | `ch32v003f4p6` | ch32v0 | 48 MHz HSI PLL, blinks active-low LED on PC2 |
 | `uart_echo` | `ch32v003f4p6` | ch32v0 | USART1 echo at 115200 on PD5/PD6 |
+| `adc_dma_uart` | `ch32v003f4p6` | ch32v0 | ADC on PA1, continuous conversion + DMA to RAM, mean on USART1 |
 | `ch582_blink` | `ch582m` | ch5xx58x | 32 MHz crystal + PLL to 60 MHz, toggles PB4 |
 | `ch582_uart_echo` | `ch582m` | ch5xx58x | UART1 echo at 115200 on PA8/PA9 |
 | `ch582_ble_advertise` | `ch582m` | ch5xx58x | BLE peripheral advertising as "libopenwch" |
