@@ -25,7 +25,7 @@ against another checkout with `make OPENWCH_DIR=/path/to/libopenwch`.
 |---|---|---|---|
 | ch32v0 | `adc_dma_uart` | `ch32v003f4p6` | PA1 ADC continuous, DMA to RAM, mean on USART1 |
 | ch32v0 | `blink` | `ch32v003f4p6` | 48 MHz HSI PLL, active-low LED on PC2 |
-| ch32v0 | `spi_nor_crc` | `ch32v003f4p6` | SPI1 PA5/PA6/PA7, detects NOR flash, prints ID/capacity/SFDP, then CRC32 per 4 KiB page |
+| ch32v0 | `spi_nor_crc` | `ch32v003f4p6` | SPI1 remap PC4/PC5/PC6/PC7, detects NOR flash, prints ID/capacity/SFDP, then CRC32 per 4 KiB page |
 | ch32v0 | `uart_counter` | `ch32v003f4p6` | prints chip id/sysclk, then a counter per second on USART1 PD5 |
 | ch5xx58x | `ch582_ble_advertise` | `ch582m` | BLE peripheral advertising as "libopenwch" |
 | ch5xx58x | `ch582_blink` | `ch582m` | 32 MHz crystal + PLL to 60 MHz, LED on PB4 |

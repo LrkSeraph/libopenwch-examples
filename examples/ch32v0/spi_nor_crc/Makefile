@@ -20,8 +20,8 @@
 ##
 ## CH32V003 SPI NOR flash CRC32 test.
 ##
-## SPI1 default pins: PA5 = SCK, PA6 = MISO, PA7 = MOSI.
-## PA4 is a software chip select; USART1 TX is PD5, 115200 8N1.
+## SPI1 remap pins: PC5 = SCK, PC6 = MOSI, PC7 = MISO.
+## PC4 is a software chip select; USART1 TX is PD5, 115200 8N1.
 ##
 ## Override the number of 4 KiB pages:
 ##   make CFLAGS+=-DFLASH_PAGE_COUNT=64

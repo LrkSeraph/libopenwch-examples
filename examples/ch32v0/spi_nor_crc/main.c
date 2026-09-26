@@ -20,9 +20,9 @@
 /*
  * SPI NOR flash CRC32 test for a CH32V003.
  *
- * The hardware SPI1 bus is on the default pins PA5 (SCK), PA6 (MISO) and
- * PA7 (MOSI).  A GPIO acts as chip select; PA4 is used by default and can be
- * changed by editing FLASH_CS_PORT/FLASH_CS_PIN below.
+ * The hardware SPI1 bus is remapped to PC5 (SCK), PC6 (MOSI) and PC7 (MISO).
+ * A GPIO acts as chip select; PC4 is used by default and can be changed by
+ * editing FLASH_CS_PORT/FLASH_CS_PIN below.
  *
  * The firmware probes the flash with JEDEC RDID first.  If no flash answers it
  * prints an explicit error and stops; otherwise it reports the ID, manufacturer,
@@ -42,10 +42,10 @@
  * table-free reflected software fallback with the same result.
  *
  * Wiring:
- *   PA4 = CS   (software, active low)
- *   PA5 = SCK
- *   PA6 = MISO
- *   PA7 = MOSI
+ *   PC4 = CS   (software, active low)
+ *   PC5 = SCK
+ *   PC6 = MOSI
+ *   PC7 = MISO
  *   PD5 = USART1 TX, 115200 8N1
  *
  * Override the number of pages with -DFLASH_PAGE_COUNT=...
@@ -62,7 +62,7 @@
 
 #define UART_BAUD 115200u
 
-#define FLASH_CS_PORT GPIOA
+#define FLASH_CS_PORT GPIOC
 #define FLASH_CS_PIN GPIO4
 
 #define FLASH_PAGE_SIZE 4096u
@@ -173,16 +173,20 @@ static uint8_t spi_flash_xfer(uint8_t value) {
 }
 
 static void spi_flash_init(void) {
-	rcc_periph_clock_enable(RCC_GPIOA);
+	rcc_periph_clock_enable(RCC_AFIO);
+	rcc_periph_clock_enable(RCC_GPIOC);
 	rcc_periph_clock_enable(RCC_SPI1);
 
-	/* PA4 is a GPIO chip select, not the SPI NSS alternate function. */
+	/* SPI1 remap: PC5 = SCK, PC6 = MOSI, PC7 = MISO. */
+	gpio_primary_remap(GPIO_REMAP_SPI1);
+
+	/* PC4 is a GPIO chip select, not the SPI NSS alternate function. */
 	gpio_set_mode(FLASH_CS_PORT, GPIO_MODE_OUT_PP, FLASH_CS_PIN);
 	spi_flash_cs_high();
 
 	/* SCK and MOSI are outputs; MISO is an input. */
-	gpio_set_mode(GPIOA, GPIO_MODE_AF_PP, GPIO5 | GPIO7);
-	gpio_set_mode(GPIOA, GPIO_MODE_IN_FLOATING, GPIO6);
+	gpio_set_mode(GPIOC, GPIO_MODE_AF_PP, GPIO5 | GPIO6);
+	gpio_set_mode(GPIOC, GPIO_MODE_IN_FLOATING, GPIO7);
 
 	/* Mode 0, 8-bit, MSB first, 48 MHz / 8 = 6 MHz SCK. */
 	spi_init_master(SPI1, SPI_BAUDRATE_PRESCALER_8, SPI_CPOL_LOW,
