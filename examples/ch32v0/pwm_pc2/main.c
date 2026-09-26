@@ -18,21 +18,22 @@
  */
 
 /*
- * CH32V003 PWM example on PC2.
+ * CH32V003 breathing-light PWM example on PC2.
  *
  * PC2 can be routed to TIM2_CH2 with TIM2 partial remap 1.  This example
- * generates a 1 kHz PWM signal and sweeps the duty cycle from 0 % to 100 %
- * and back.  The current duty is also printed on USART1.
+ * generates a 1 kHz PWM signal and modulates its duty with a raised-cosine
+ * brightness table, producing a smooth breathing effect.
+ *
+ * The common CH32V003 board has an active-low LED on PC2 (PC2 low = LED on),
+ * so the duty cycle is inverted before it is written to the compare register.
+ * Set PWM_ACTIVE_LOW to 0 for an active-high LED.
  *
  * Wiring:
- *   PC2 = TIM2_CH2 PWM output
+ *   PC2 = TIM2_CH2 PWM output / active-low LED
  *   PD5 = USART1 TX, 115200 8N1, partial remap 1
- *
- * On boards where PC2 drives an active-low LED to 3.3 V, the visible
- * brightness is roughly inverse to the duty cycle because the LED lights when
- * PC2 is low.
  */
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <libopenwch/ch32v0/gpio.h>
@@ -47,8 +48,22 @@
 #define PWM_OC TIM_OC2
 #define PWM_PERIOD 999u
 #define PWM_MAX_DUTY 1000u
-#define PWM_STEP 10u
-#define PWM_DELAY_MS 20u
+
+/* 0 = active-high LED, 1 = active-low LED (PC2 on the common board). */
+#define PWM_ACTIVE_LOW 1
+
+#define BREATH_STEPS 32u
+#define BREATH_DELAY_MS 25u /* about 0.8 s up + 0.8 s down */
+
+/*
+ * Raised-cosine brightness curve, 0 at index 0 and 1000 at index 32.
+ * It is smooth at both ends, which is what makes the LED look like it is
+ * breathing instead of linearly ramping.
+ */
+static const uint16_t breath_table[BREATH_STEPS + 1u] = {
+    0,	 2,   10,  22,	38,  59,  84,  113, 146, 183, 222,
+    264, 309, 355, 402, 451, 500, 549, 598, 645, 691, 736,
+    778, 817, 854, 887, 916, 941, 962, 978, 990, 998, 1000};
 
 static void uart_init(void) {
 	rcc_periph_clock_enable(RCC_USART1);
@@ -126,19 +141,18 @@ static void pwm_set_duty(uint16_t duty) {
 	timer_set_oc_value(PWM_TIMER, PWM_OC, duty);
 }
 
-static void print_duty(uint16_t duty) {
-	uart_puts("PWM PC2 TIM2_CH2: duty = ");
-	uart_putu(duty);
-	uart_puts("/");
-	uart_putu(PWM_MAX_DUTY);
-	uart_puts(" (");
+static void print_state(uint16_t brightness, uint16_t duty) {
+	uart_puts("breath: brightness = ");
+	uart_putu(brightness);
+	uart_puts("/1000, duty = ");
 	uart_putu(((uint32_t)duty * 100u) / PWM_MAX_DUTY);
-	uart_puts("%)\r\n");
+	uart_puts("%\r\n");
 }
 
 int main(void) {
-	int32_t duty = 0;
-	int32_t step = PWM_STEP;
+	uint32_t phase = 0u;
+	uint32_t print_div = 0u;
+	bool increasing = true;
 
 	rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_PLL_HSI_48MHZ]);
 
@@ -146,27 +160,38 @@ int main(void) {
 	delay_init();
 	pwm_init();
 
-	uart_puts("\r\nlibopenwch PWM example on PC2\r\n");
-	uart_puts("TIM2_CH2, 1 kHz, duty 0..100%\r\n");
+	uart_puts("\r\nlibopenwch PC2 breathing-light example\r\n");
+	uart_puts("TIM2_CH2, 1 kHz PWM, raised-cosine brightness\r\n");
 
 	for (;;) {
-		pwm_set_duty((uint16_t)duty);
+		uint16_t brightness = breath_table[phase];
+		uint16_t duty = (PWM_ACTIVE_LOW != 0)
+				    ? (uint16_t)(PWM_MAX_DUTY - brightness)
+				    : brightness;
 
-		if ((duty % 100) == 0) {
-			print_duty((uint16_t)duty);
-			qingke_delay_ms(100u);
-		} else {
-			qingke_delay_ms(PWM_DELAY_MS);
+		pwm_set_duty(duty);
+
+		if (++print_div >= 8u) {
+			print_state(brightness, duty);
+			print_div = 0u;
 		}
 
-		duty += step;
+		qingke_delay_ms(BREATH_DELAY_MS);
 
-		if (duty >= (int32_t)PWM_MAX_DUTY) {
-			duty = (int32_t)PWM_MAX_DUTY;
-			step = -PWM_STEP;
-		} else if (duty <= 0) {
-			duty = 0;
-			step = PWM_STEP;
+		if (increasing) {
+			if (phase >= BREATH_STEPS) {
+				increasing = false;
+				phase = BREATH_STEPS - 1u;
+			} else {
+				phase++;
+			}
+		} else {
+			if (phase == 0u) {
+				increasing = true;
+				phase = 1u;
+			} else {
+				phase--;
+			}
 		}
 	}
 
