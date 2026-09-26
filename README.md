@@ -21,6 +21,15 @@ make flash      # needs a WCH-Link programmer
 Without `--recurse-submodules`, run `git submodule update --init`; or build
 against another checkout with `make OPENWCH_DIR=/path/to/libopenwch`.
 
+After the `libopenwch` submodule is updated, rebuild its archives once:
+
+```sh
+make -C libopenwch
+```
+
+The per-example rule only builds the archive when it is missing, so a source
+update alone does not upgrade an already-built `libopenwch_*.a`.
+
 | Family | Example | Device | What it does |
 |---|---|---|---|
 | ch32v0 | `adc_dma_uart` | `ch32v003f4p6` | PA1 ADC continuous, DMA to RAM, mean on USART1 |
