@@ -36,7 +36,8 @@ update alone does not upgrade an already-built `libopenwch_*.a`.
 | ch32v0 | `blink` | `ch32v003f4p6` | 48 MHz HSI PLL, active-low LED on PC2 |
 | ch32v0 | `selftest/dma_selftest` | `ch32v003f4p6` | DMA1 channel 1 SRAM-to-SRAM 8/32-bit transfers; PASS/FAIL and measured throughput on USART1 |
 | ch32v0 | `spi_nor_crc` | `ch32v003f4p6` | SPI1 PC4/PC5/PC6/PC7, detects NOR flash, prints ID/capacity/SFDP, then CRC32 per 4 KiB page |
-| ch32v0 | `selftest/timer_selftest` | `ch32v003f4p6` | TIM2 1 Hz update; SysTick-measured period and PASS/WARN on USART1 |
+| ch32v0 | `selftest/timer_selftest` | `ch32v003f4p6` | TIM1 and TIM2 1 Hz update; SysTick-measured periods and PASS/WARN on USART1 |
+| ch32v0 | `selftest/watchdog_selftest` | `ch32v003f4p6` | IWDG and WWDG deliberate resets; `.noinit` state and RCC reset flags report PASS on USART1 |
 | ch32v0 | `uart_counter` | `ch32v003f4p6` | prints chip id/sysclk, then a counter per second on USART1 PD5 |
 | ch5xx58x | `ch582_ble_advertise` | `ch582m` | BLE peripheral advertising as "libopenwch" |
 | ch5xx58x | `ch582_blink` | `ch582m` | 32 MHz crystal + PLL to 60 MHz, LED on PB4 |

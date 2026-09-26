@@ -18,12 +18,12 @@
  */
 
 /*
- * CH32V003 TIM2 period self-test.
+ * CH32V003 timer self-test.
  *
- * TIM2 is configured for a 1 Hz update event.  The main loop polls the update
- * flag, measures the interval with the QingKe SysTick counter, and prints the
- * measured period on USART1.  The measured value should stay close to
- * 1,000,000 us; a warning is printed if it does not.
+ * CH32V003 has TIM1 (advanced-control, APB2) and TIM2 (general-purpose,
+ * APB1).  Both are configured as 1 Hz time bases; the QingKe SysTick counter
+ * measures one full update period for each timer and prints PASS/WARN on
+ * USART1.
  *
  * Wiring: PD5 = USART1 TX, 115200 8N1, partial remap 1.
  */
@@ -39,7 +39,7 @@
 
 #define UART_BAUD 115200u
 
-/* The timer should produce one update per second. */
+#define TIMER_PRESCALER 4799u /* 48 MHz / 4800 = 10 kHz */
 #define EXPECTED_PERIOD_US 1000000u
 #define PERIOD_TOLERANCE_US 5000u
 
@@ -94,102 +94,107 @@ static void reference_clock_init(void) {
 }
 
 /**
- * TIM2 is on APB1.  When APB1 is prescaled, the timer clock is twice PCLK1;
- * when it is not, the timer runs directly from PCLK1.
+ * APB timers run at PCLK when the APB prescaler is 1, and at twice PCLK
+ * otherwise.
  */
-static uint32_t timer_clock_hz(void) {
-	uint32_t clock = rcc_apb1_frequency;
+static uint32_t timer_clock_hz(uint32_t pclk, uint32_t ahb) {
+	uint32_t clock = pclk;
 
-	if (rcc_apb1_frequency != rcc_ahb_frequency) {
+	if (pclk != ahb) {
 		clock *= 2u;
 	}
 
 	return clock;
 }
 
-static void tim2_init(uint32_t clock_hz) {
-	uint32_t prescaler = 4799u; /* 48 MHz / 4800 = 10 kHz */
-	uint32_t period = (clock_hz / (prescaler + 1u)) - 1u;
+static bool timer_period_test(uint32_t tim,
+			      uint32_t rcc_clock,
+			      const char *name,
+			      uint32_t clock_hz) {
+	uint32_t period = (clock_hz / (TIMER_PRESCALER + 1u)) - 1u;
+	uint64_t start;
+	uint64_t end;
+	uint64_t elapsed_us;
+	bool pass;
 
-	rcc_periph_clock_enable(RCC_TIM2);
+	rcc_periph_clock_enable(rcc_clock);
 
-	timer_disable(TIM2);
-	timer_set_prescaler(TIM2, (uint16_t)prescaler);
-	timer_set_period(TIM2, (uint16_t)period);
-	timer_set_mode(TIM2, TIM_MODE_EDGE_ALIGNED | TIM_MODE_UP |
-				 TIM_MODE_UPDATE_OVERFLOW);
-	timer_set_counter(TIM2, 0);
-	timer_generate_event(TIM2, TIM_EVENT_UPDATE);
-	timer_clear_flag(TIM2, TIM_FLAG_UPDATE);
-	timer_enable(TIM2);
+	timer_disable(tim);
+	timer_set_prescaler(tim, (uint16_t)TIMER_PRESCALER);
+	timer_set_period(tim, (uint16_t)period);
+	timer_set_mode(tim, TIM_MODE_EDGE_ALIGNED | TIM_MODE_UP |
+				TIM_MODE_UPDATE_OVERFLOW);
+	timer_set_counter(tim, 0);
+	timer_generate_event(tim, TIM_EVENT_UPDATE);
+	timer_clear_flag(tim, TIM_FLAG_UPDATE);
+	timer_enable(tim);
 
-	uart_puts("TIM2 clock = ");
+	uart_puts(name);
+	uart_puts(" clock = ");
 	uart_putu(clock_hz);
-	uart_puts(" Hz\r\npsc = ");
-	uart_putu(prescaler);
+	uart_puts(" Hz, psc = ");
+	uart_putu(TIMER_PRESCALER);
 	uart_puts(", arr = ");
 	uart_putu(period);
-	uart_puts(", expected = 1 Hz\r\n");
+	uart_puts("\r\n");
+
+	/* Synchronise to an update edge, then time the next full period. */
+	while (timer_get_flag(tim, TIM_FLAG_UPDATE) == 0u) {
+		;
+	}
+
+	timer_clear_flag(tim, TIM_FLAG_UPDATE);
+	start = systick_get_counter();
+
+	while (timer_get_flag(tim, TIM_FLAG_UPDATE) == 0u) {
+		;
+	}
+
+	end = systick_get_counter();
+	timer_clear_flag(tim, TIM_FLAG_UPDATE);
+	timer_disable(tim);
+
+	elapsed_us =
+	    ((end - start) * 1000000ull) / (uint64_t)rcc_sysclk_frequency;
+
+	pass = (elapsed_us + PERIOD_TOLERANCE_US >= EXPECTED_PERIOD_US) &&
+	       (elapsed_us <= EXPECTED_PERIOD_US + PERIOD_TOLERANCE_US);
+
+	uart_puts(name);
+	uart_puts(": period = ");
+	uart_putu((uint32_t)elapsed_us);
+	uart_puts(" us, cnt = ");
+	uart_putu(timer_get_counter(tim));
+	uart_puts(pass ? ", PASS\r\n" : ", WARN (expected 1000000 us)\r\n");
+
+	return pass;
 }
 
 int main(void) {
-	uint32_t timer_clock;
-	uint32_t tick = 0;
-	uint32_t failures = 0;
+	uint32_t tim1_clock;
+	uint32_t tim2_clock;
 
 	rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_PLL_HSI_48MHZ]);
 
 	uart_init();
 	reference_clock_init();
 
-	timer_clock = timer_clock_hz();
-	tim2_init(timer_clock);
+	tim1_clock = timer_clock_hz(rcc_apb2_frequency, rcc_ahb_frequency);
+	tim2_clock = timer_clock_hz(rcc_apb1_frequency, rcc_ahb_frequency);
 
-	uart_puts("\r\nlibopenwch TIM2 self-test\r\n");
-
-	timer_clear_flag(TIM2, TIM_FLAG_UPDATE);
+	uart_puts("\r\nlibopenwch timer self-test\r\n");
 
 	for (;;) {
-		uint64_t start;
-		uint64_t end;
-		uint64_t elapsed_us;
+		bool tim1_ok;
+		bool tim2_ok;
 
-		/* Synchronise to an update edge, then time the next full period. */
-		while (timer_get_flag(TIM2, TIM_FLAG_UPDATE) == 0u) {
-			;
-		}
+		tim1_ok = timer_period_test(TIM1, RCC_TIM1, "TIM1", tim1_clock);
+		tim2_ok = timer_period_test(TIM2, RCC_TIM2, "TIM2", tim2_clock);
 
-		timer_clear_flag(TIM2, TIM_FLAG_UPDATE);
-		start = systick_get_counter();
+		uart_puts(tim1_ok && tim2_ok ? "all timers: PASS\r\n"
+					     : "all timers: WARN\r\n");
 
-		while (timer_get_flag(TIM2, TIM_FLAG_UPDATE) == 0u) {
-			;
-		}
-
-		end = systick_get_counter();
-		timer_clear_flag(TIM2, TIM_FLAG_UPDATE);
-
-		elapsed_us = ((end - start) * 1000000ull) /
-			     (uint64_t)rcc_sysclk_frequency;
-
-		tick++;
-
-		uart_puts("tick ");
-		uart_putu(tick);
-		uart_puts(": period = ");
-		uart_putu((uint32_t)elapsed_us);
-		uart_puts(" us, cnt = ");
-		uart_putu(timer_get_counter(TIM2));
-
-		if ((elapsed_us + PERIOD_TOLERANCE_US >= EXPECTED_PERIOD_US) &&
-		    (elapsed_us <= EXPECTED_PERIOD_US + PERIOD_TOLERANCE_US)) {
-			uart_puts(", PASS\r\n");
-		} else {
-			failures++;
-			uart_puts(", WARN (expected 1000000 us; failures = ");
-			uart_putu(failures);
-			uart_puts(")\r\n");
-		}
+		qingke_delay_ms(500u);
 	}
 
 	/* Not reached. */

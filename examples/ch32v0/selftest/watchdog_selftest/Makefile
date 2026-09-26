@@ -18,22 +18,18 @@
 ##
 
 ##
-## CH32V003 self-test group.
+## CH32V003 IWDG + WWDG self-test.
 ##
-## Keeps the individual self-tests in their own folders while presenting the
-## group as one entry to the examples build and CI loops.
+## The program deliberately resets itself with both watchdogs and prints the
+## result on USART1 (PD5, 115200 8N1) after each reset.
 ##
 
-TARGETS = dma_selftest timer_selftest watchdog_selftest
+PROJECT= watchdog_selftest
 
-all:
-	@for t in $(TARGETS); do \
-	$(MAKE) -C $$t || exit $$?; \
-	done
+DEVICE?= ch32v003f4p6
 
-clean:
-	@for t in $(TARGETS); do \
-	$(MAKE) -C $$t clean || exit $$?; \
-	done
+TEMPLATE_DIR?= $(abspath ../../../..)
 
-.PHONY: all clean
+CFILES= main.c
+
+include $(TEMPLATE_DIR)/rules/rules.mk
