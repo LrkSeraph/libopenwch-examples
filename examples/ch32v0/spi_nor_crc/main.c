@@ -24,8 +24,11 @@
  * PA7 (MOSI).  A GPIO acts as chip select; PA4 is used by default and can be
  * changed by editing FLASH_CS_PORT/FLASH_CS_PIN below.
  *
- * The firmware reads FLASH_PAGE_COUNT 4 KiB pages from address zero and prints
- * the CRC-32 of each page on USART1.  The CRC uses GCC's CRC32 builtins:
+ * The firmware probes the flash with JEDEC RDID first.  If no flash answers it
+ * prints an explicit error and stops; otherwise it reports the ID, manufacturer,
+ * capacity, SFDP presence and status register.  It then reads FLASH_PAGE_COUNT
+ * 4 KiB pages from address zero and prints the CRC-32 of each page on USART1.
+ * The CRC uses GCC's CRC32 builtins:
  *
  *     poly   = 0x04c11db7 (normal form)
  *     init   = 0xffffffff
@@ -73,6 +76,8 @@
 #endif
 
 #define SPI_FLASH_CMD_READ 0x03u
+#define SPI_FLASH_CMD_RDSR1 0x05u
+#define SPI_FLASH_CMD_SFDP 0x5au
 #define SPI_FLASH_CMD_RDID 0x9fu
 
 #define CRC32_POLYNOMIAL 0x04c11db7u
@@ -169,20 +174,116 @@ static void spi_flash_init(void) {
 	spi_enable(SPI1);
 }
 
-static uint32_t spi_flash_read_id(void) {
-	uint8_t manufacturer;
-	uint8_t memory_type;
-	uint8_t capacity;
-
+static bool spi_flash_read_id(uint8_t *manufacturer,
+			      uint8_t *memory_type,
+			      uint8_t *capacity) {
 	spi_flash_cs_low();
 	(void)spi_flash_xfer(SPI_FLASH_CMD_RDID);
-	manufacturer = spi_flash_xfer(0xffu);
-	memory_type = spi_flash_xfer(0xffu);
-	capacity = spi_flash_xfer(0xffu);
+	*manufacturer = spi_flash_xfer(0xffu);
+	*memory_type = spi_flash_xfer(0xffu);
+	*capacity = spi_flash_xfer(0xffu);
 	spi_flash_cs_high();
 
-	return ((uint32_t)manufacturer << 16) | ((uint32_t)memory_type << 8) |
-	       (uint32_t)capacity;
+	if (*manufacturer == 0xffu && *memory_type == 0xffu &&
+	    *capacity == 0xffu) {
+		return false;
+	}
+
+	if (*manufacturer == 0x00u && *memory_type == 0x00u &&
+	    *capacity == 0x00u) {
+		return false;
+	}
+
+	return true;
+}
+
+static uint8_t spi_flash_read_status1(void) {
+	uint8_t status;
+
+	spi_flash_cs_low();
+	(void)spi_flash_xfer(SPI_FLASH_CMD_RDSR1);
+	status = spi_flash_xfer(0xffu);
+	spi_flash_cs_high();
+
+	return status;
+}
+
+static bool spi_flash_sfdp_present(void) {
+	uint8_t signature[4];
+	unsigned i;
+
+	spi_flash_cs_low();
+	(void)spi_flash_xfer(SPI_FLASH_CMD_SFDP);
+	(void)spi_flash_xfer(0x00u);
+	(void)spi_flash_xfer(0x00u);
+	(void)spi_flash_xfer(0x00u);
+	(void)spi_flash_xfer(0xffu); /* one dummy byte */
+
+	for (i = 0u; i < sizeof(signature); i++) {
+		signature[i] = spi_flash_xfer(0xffu);
+	}
+
+	spi_flash_cs_high();
+
+	return signature[0] == 'S' && signature[1] == 'F' &&
+	       signature[2] == 'D' && signature[3] == 'P';
+}
+
+static const char *spi_flash_manufacturer_name(uint8_t manufacturer) {
+	switch (manufacturer) {
+	case 0x01u:
+		return "Spansion/Cypress";
+	case 0x0bu:
+		return "XTX";
+	case 0x1cu:
+		return "EON";
+	case 0x1fu:
+		return "Atmel/Adesto";
+	case 0x20u:
+		return "Micron/ST";
+	case 0x5eu:
+		return "Zbit";
+	case 0x62u:
+		return "SANYO";
+	case 0x68u:
+		return "Boya";
+	case 0x7fu:
+	case 0x9du:
+		return "ISSI";
+	case 0x85u:
+		return "Puya";
+	case 0x89u:
+		return "BergMicro";
+	case 0x8cu:
+		return "ESMT";
+	case 0xa1u:
+		return "Fudan";
+	case 0xc2u:
+		return "Macronix";
+	case 0xefu:
+		return "Winbond";
+	default:
+		return "unknown";
+	}
+}
+
+static void console_put_size(uint32_t bytes) {
+	console_putu(bytes);
+	console_puts(" bytes");
+
+	if (bytes >= 1024u) {
+		console_puts(" (");
+		console_putu(bytes / 1024u);
+		console_puts(" KiB");
+
+		if (bytes >= 1024u * 1024u) {
+			console_puts(", ");
+			console_putu(bytes / (1024u * 1024u));
+			console_puts(" MiB");
+		}
+
+		console_puts(")");
+	}
 }
 
 static void spi_flash_read(uint32_t address, uint8_t *out, uint32_t length) {
@@ -229,7 +330,20 @@ static uint32_t crc32_page(uint32_t address) {
 	return crc ^ CRC32_XOROUT;
 }
 
+static uint32_t spi_flash_capacity_from_code(uint8_t code) {
+	if (code >= 32u) {
+		return 0u;
+	}
+
+	return 1u << code;
+}
+
 int main(void) {
+	uint8_t manufacturer = 0u;
+	uint8_t memory_type = 0u;
+	uint8_t capacity_code = 0u;
+	uint32_t capacity_bytes;
+	uint8_t status;
 	uint32_t page;
 
 	rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_PLL_HSI_48MHZ]);
@@ -238,8 +352,65 @@ int main(void) {
 	spi_flash_init();
 
 	console_puts("\r\nlibopenwch SPI NOR CRC32 test\r\n");
-	console_puts("jedec id = 0x");
-	console_puthex(spi_flash_read_id(), 6u);
+
+	if (!spi_flash_read_id(&manufacturer, &memory_type, &capacity_code)) {
+		console_puts("SPI NOR flash NOT detected\r\n");
+		console_puts("  RDID = 0x");
+		console_puthex(manufacturer, 2u);
+		console_puthex(memory_type, 2u);
+		console_puthex(capacity_code, 2u);
+		console_puts("\r\n");
+		console_puts(
+		    "  check CS (PA4), SCK (PA5), MISO (PA6), MOSI (PA7), "
+		    "VCC and GND\r\n");
+
+		for (;;) {
+			;
+		}
+	}
+
+	capacity_bytes = spi_flash_capacity_from_code(capacity_code);
+	status = spi_flash_read_status1();
+
+	console_puts("SPI NOR flash detected:\r\n");
+	console_puts("  RDID = 0x");
+	console_puthex(manufacturer, 2u);
+	console_puthex(memory_type, 2u);
+	console_puthex(capacity_code, 2u);
+	console_puts("\r\n");
+
+	console_puts("  manufacturer = ");
+	console_puts(spi_flash_manufacturer_name(manufacturer));
+	console_puts(" (0x");
+	console_puthex(manufacturer, 2u);
+	console_puts(")\r\n");
+
+	console_puts("  memory type = 0x");
+	console_puthex(memory_type, 2u);
+	console_puts("\r\n");
+
+	console_puts("  capacity = ");
+	if (capacity_bytes != 0u) {
+		console_put_size(capacity_bytes);
+	} else {
+		console_puts("unknown (capacity code 0x");
+		console_puthex(capacity_code, 2u);
+		console_puts(")");
+	}
+	console_puts("\r\n");
+
+	console_puts("  SFDP = ");
+	console_puts(spi_flash_sfdp_present() ? "present" : "not present");
+	console_puts("\r\n");
+
+	console_puts("  SR1 = 0x");
+	console_puthex(status, 2u);
+	console_puts(" (WIP=");
+	console_putu(status & 0x01u);
+	console_puts(", WEL=");
+	console_putu((status >> 1) & 0x01u);
+	console_puts(")\r\n");
+
 	console_puts("\r\n");
 
 	for (page = 0u; page < FLASH_PAGE_COUNT; page++) {
