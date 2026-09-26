@@ -109,8 +109,7 @@ static void console_init(void) {
 	rcc_periph_clock_enable(RCC_AFIO);
 	rcc_periph_clock_enable(RCC_GPIOD);
 
-	/* USART1 partial remap 1: TX = PD5. */
-	gpio_usart1_remap(GPIO_REMAP_USART1_PARTIAL1);
+	/* USART1 default pins: TX = PD5. */
 	gpio_set_mode(GPIOD, GPIO_MODE_AF_PP, GPIO5);
 
 	usart_set_baudrate(USART1, UART_BAUD);

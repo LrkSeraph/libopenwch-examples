@@ -37,12 +37,12 @@
 
 /*
  * Which TX pin to use.
- *   0 - PA9, no remap
- *   1 - PD5, partial remap 1   <- evaluation board default
- *   2 - PD0, partial remap 2
- *   3 - PD6, full remap
+ *   0 - PD5, no remap          <- evaluation board default
+ *   1 - PD0, partial remap 1
+ *   2 - PD6, partial remap 2
+ *   3 - PC0, full remap
  */
-#define UART_PIN_MAPPING 1
+#define UART_PIN_MAPPING 0
 
 static void console_init(void) {
 	rcc_periph_clock_enable(RCC_USART1);
@@ -55,21 +55,23 @@ static void console_init(void) {
 	usart_set_mode(USART1, USART_MODE_TX);
 	usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
 
-#if UART_PIN_MAPPING == 1
-	gpio_usart1_remap(GPIO_REMAP_USART1_PARTIAL1);
+#if UART_PIN_MAPPING == 0
 	rcc_periph_clock_enable(RCC_GPIOD);
 	gpio_set_mode(GPIOD, GPIO_MODE_AF_PP, GPIO5);
+#elif UART_PIN_MAPPING == 1
+	gpio_usart1_remap(GPIO_REMAP_USART1_PARTIAL1);
+	rcc_periph_clock_enable(RCC_GPIOD);
+	gpio_set_mode(GPIOD, GPIO_MODE_AF_PP, GPIO0);
 #elif UART_PIN_MAPPING == 2
 	gpio_usart1_remap(GPIO_REMAP_USART1_PARTIAL2);
 	rcc_periph_clock_enable(RCC_GPIOD);
-	gpio_set_mode(GPIOD, GPIO_MODE_AF_PP, GPIO0);
+	gpio_set_mode(GPIOD, GPIO_MODE_AF_PP, GPIO6);
 #elif UART_PIN_MAPPING == 3
 	gpio_usart1_remap(GPIO_REMAP_USART1_FULL);
-	rcc_periph_clock_enable(RCC_GPIOD);
-	gpio_set_mode(GPIOD, GPIO_MODE_AF_PP, GPIO6);
+	rcc_periph_clock_enable(RCC_GPIOC);
+	gpio_set_mode(GPIOC, GPIO_MODE_AF_PP, GPIO0);
 #else
-	rcc_periph_clock_enable(RCC_GPIOA);
-	gpio_set_mode(GPIOA, GPIO_MODE_AF_PP, GPIO9);
+#error "invalid UART_PIN_MAPPING"
 #endif
 
 	usart_enable(USART1);
