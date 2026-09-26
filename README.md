@@ -27,13 +27,14 @@ If you cloned without `--recurse-submodules`, `git submodule update --init`
 fetches the library; `make OPENWCH_DIR=/path/to/libopenwch` builds against a
 checkout somewhere else instead.
 
-Six examples ship here, and all build today:
+Seven examples ship here, and all build today:
 
 | Example | Device | Family | What it does |
 |---|---|---|---|
 | `blink` | `ch32v003f4p6` | ch32v0 | 48 MHz from the internal RC oscillator, toggles PD1 |
 | `uart_echo` | `ch32v003f4p6` | ch32v0 | USART1 echo at 115200 on PD5/PD6 |
 | `uart_counter` | `ch32v003f4p6` | ch32v0 | USART1 transmit-only counter at 115200 on PD5, for `/dev/ttyACM0` |
+| `sdi_counter` | `ch32v003f4p6` | ch32v0 | Counter over the WCH-LinkE SDI virtual serial port, using SWIO/GND/3.3 V only |
 | `ch582_blink` | `ch582m` | ch5xx58x | 32 MHz crystal + PLL to 60 MHz, toggles PB4 |
 | `ch582_uart_echo` | `ch582m` | ch5xx58x | UART1 echo at 115200 on PA8/PA9 |
 | `ch582_ble_advertise` | `ch582m` | ch5xx58x | BLE peripheral: advertises as "libopenwch", LEDs on connect |
