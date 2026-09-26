@@ -34,6 +34,7 @@ update alone does not upgrade an already-built `libopenwch_*.a`.
 |---|---|---|---|
 | ch32v0 | `adc_dma_uart` | `ch32v003f4p6` | PA1 ADC continuous, DMA to RAM, mean on USART1 |
 | ch32v0 | `blink` | `ch32v003f4p6` | 48 MHz HSI PLL, active-low LED on PC2 |
+| ch32v0 | `pwm_pc2` | `ch32v003f4p6` | TIM2_CH2 on PC2 (partial remap 1), 1 kHz PWM duty sweep 0..100 % on USART1 |
 | ch32v0 | `selftest/dma_selftest` | `ch32v003f4p6` | DMA1 channel 1 SRAM-to-SRAM 8/32-bit transfers; PASS/FAIL and measured throughput on USART1 |
 | ch32v0 | `spi_nor_crc` | `ch32v003f4p6` | SPI1 PC4/PC5/PC6/PC7, detects NOR flash, prints ID/capacity/SFDP, then CRC32 per 4 KiB page |
 | ch32v0 | `selftest/timer_selftest` | `ch32v003f4p6` | TIM1 and TIM2 1 Hz update; SysTick-measured periods and PASS/WARN on USART1 |
