@@ -163,6 +163,11 @@ int main(void) {
 	uart_puts("\r\nlibopenwch PWM breathing-light example\r\n");
 	uart_puts("TIM2_CH2, 1 kHz PWM, raised-cosine brightness\r\n");
 
+	/* Startup check: force the LED fully on for one second. */
+	uart_puts("startup: LED full on for 1 s\r\n");
+	pwm_set_duty((PWM_ACTIVE_LOW != 0) ? 0u : PWM_MAX_DUTY);
+	qingke_delay_ms(1000u);
+
 	for (;;) {
 		uint16_t brightness = breath_table[phase];
 		uint16_t duty = (PWM_ACTIVE_LOW != 0)
