@@ -18,18 +18,22 @@
 ##
 
 ##
-## CH32V003 DMA memory-to-memory self-test.
+## CH32V003 self-test group.
 ##
-## DMA1 channel 1 copies SRAM blocks in MEM2MEM mode; PASS/FAIL progress is
-## printed on USART1 (PD5, 115200 8N1).
+## Keeps the individual self-tests in their own folders while presenting the
+## group as one entry to the examples build and CI loops.
 ##
 
-PROJECT= dma_selftest_uart
+TARGETS = dma_selftest timer_selftest
 
-DEVICE?= ch32v003f4p6
+all:
+	@for t in $(TARGETS); do \
+	$(MAKE) -C $$t || exit $$?; \
+	done
 
-TEMPLATE_DIR?= $(abspath ../../..)
+clean:
+	@for t in $(TARGETS); do \
+	$(MAKE) -C $$t clean || exit $$?; \
+	done
 
-CFILES= main.c
-
-include $(TEMPLATE_DIR)/rules/rules.mk
+.PHONY: all clean

@@ -25,9 +25,9 @@ against another checkout with `make OPENWCH_DIR=/path/to/libopenwch`.
 |---|---|---|---|
 | ch32v0 | `adc_dma_uart` | `ch32v003f4p6` | PA1 ADC continuous, DMA to RAM, mean on USART1 |
 | ch32v0 | `blink` | `ch32v003f4p6` | 48 MHz HSI PLL, active-low LED on PC2 |
-| ch32v0 | `dma_selftest_uart` | `ch32v003f4p6` | DMA1 channel 1 SRAM-to-SRAM 8/32-bit transfers; PASS/FAIL on USART1 |
+| ch32v0 | `selftest/dma_selftest` | `ch32v003f4p6` | DMA1 channel 1 SRAM-to-SRAM 8/32-bit transfers; PASS/FAIL and measured throughput on USART1 |
 | ch32v0 | `spi_nor_crc` | `ch32v003f4p6` | SPI1 PC4/PC5/PC6/PC7, detects NOR flash, prints ID/capacity/SFDP, then CRC32 per 4 KiB page |
-| ch32v0 | `timer_selftest_uart` | `ch32v003f4p6` | TIM2 1 Hz update; SysTick-measured period and PASS/WARN on USART1 |
+| ch32v0 | `selftest/timer_selftest` | `ch32v003f4p6` | TIM2 1 Hz update; SysTick-measured period and PASS/WARN on USART1 |
 | ch32v0 | `uart_counter` | `ch32v003f4p6` | prints chip id/sysclk, then a counter per second on USART1 PD5 |
 | ch5xx58x | `ch582_ble_advertise` | `ch582m` | BLE peripheral advertising as "libopenwch" |
 | ch5xx58x | `ch582_blink` | `ch582m` | 32 MHz crystal + PLL to 60 MHz, LED on PB4 |
@@ -43,6 +43,7 @@ against another checkout with `make OPENWCH_DIR=/path/to/libopenwch`.
 libopenwch/                 libopenwch git submodule
 rules/                      toolchain discovery and build/flash rules
 examples/<family>/<name>/   main.c + Makefile
+examples/ch32v0/selftest/   grouped DMA and timer self-tests
 ```
 
 Each example is independent; build all with:

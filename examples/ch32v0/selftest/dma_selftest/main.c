@@ -23,7 +23,8 @@
  * DMA1 channel 1 copies a block from one SRAM buffer to another in MEM2MEM
  * mode.  Both 8-bit and 32-bit transfer sizes are exercised, the transfer
  * number is checked, and every byte/word in the destination is compared with
- * the source.  Progress and PASS/FAIL results are printed on USART1.
+ * the source.  The transfer is timed with the QingKe SysTick counter so the
+ * UART also reports a measured throughput.
  *
  * Wiring: PD5 = USART1 TX, 115200 8N1, partial remap 1.
  */
@@ -41,13 +42,21 @@
 #define DMA_CHANNEL DMA_CHANNEL1
 #define DMA_TIMEOUT 1000000u
 
-#define DMA8_COUNT 32u
-#define DMA32_COUNT 32u
+/*
+ * One shared 256-byte buffer pair for both transfer widths.  Keeping the
+ * buffers small leaves the rest of the CH32V003's 2 KiB SRAM for the stack.
+ */
+#define DMA_BLOCK_WORDS 64u
+#define DMA8_COUNT (DMA_BLOCK_WORDS * 4u)
+#define DMA32_COUNT DMA_BLOCK_WORDS
 
-static volatile uint8_t dma8_src[DMA8_COUNT];
-static volatile uint8_t dma8_dst[DMA8_COUNT];
-static volatile uint32_t dma32_src[DMA32_COUNT];
-static volatile uint32_t dma32_dst[DMA32_COUNT];
+union dma_block {
+	uint32_t words[DMA_BLOCK_WORDS];
+	uint8_t bytes[DMA_BLOCK_WORDS * 4u];
+};
+
+static volatile union dma_block dma_src;
+static volatile union dma_block dma_dst;
 
 static void uart_init(void) {
 	rcc_periph_clock_enable(RCC_USART1);
@@ -116,19 +125,24 @@ static void console_hex32(uint32_t value) {
 }
 
 /**
- * Run one MEM2MEM transfer.
+ * Run one MEM2MEM transfer and measure it with SysTick.
  *
  * The CH32V003 DMA controller moves from PADDR to MADDR in MEM2MEM mode, so
  * PADDR is the source and MADDR is the destination here.  The peripheral-side
  * address is incremented (source) and the memory-side address is incremented
  * (destination).
  *
+ * @param[out] elapsed_ticks SysTick ticks from channel enable to TCIF.
+ *
  * @return true when the transfer-complete flag appeared and CNTR reached zero.
  */
 static bool dma_mem2mem_copy(uint32_t source,
 			     uint32_t destination,
 			     uint16_t count,
-			     uint32_t size) {
+			     uint32_t size,
+			     uint64_t *elapsed_ticks) {
+	uint64_t start;
+	uint64_t end;
 	uint32_t timeout;
 
 	rcc_periph_clock_enable(RCC_DMA1);
@@ -144,6 +158,8 @@ static bool dma_mem2mem_copy(uint32_t source,
 	dma_set_priority(DMA1, DMA_CHANNEL, DMA_PRIORITY_HIGH);
 	dma_enable_mem2mem_mode(DMA1, DMA_CHANNEL);
 	dma_clear_flag(DMA1, DMA_CHANNEL, DMA_TCIF);
+
+	start = systick_get_counter();
 	dma_channel_enable(DMA1, DMA_CHANNEL);
 
 	for (timeout = 0; timeout < DMA_TIMEOUT; timeout++) {
@@ -152,8 +168,13 @@ static bool dma_mem2mem_copy(uint32_t source,
 		}
 	}
 
+	end = systick_get_counter();
 	dma_channel_disable(DMA1, DMA_CHANNEL);
 	dma_clear_flag(DMA1, DMA_CHANNEL, DMA_TCIF);
+
+	if (elapsed_ticks != NULL) {
+		*elapsed_ticks = end - start;
+	}
 
 	if (timeout == DMA_TIMEOUT) {
 		return false;
@@ -162,17 +183,41 @@ static bool dma_mem2mem_copy(uint32_t source,
 	return dma_get_number_of_data(DMA1, DMA_CHANNEL) == 0u;
 }
 
+static uint32_t dma_speed_bytes_per_second(uint32_t bytes, uint64_t ticks) {
+	if (ticks == 0u) {
+		return 0u;
+	}
+
+	return (uint32_t)(((uint64_t)bytes * (uint64_t)rcc_sysclk_frequency) /
+			  ticks);
+}
+
+static void dma_print_result(const char *name, uint32_t bytes, uint64_t ticks) {
+	uint32_t speed = dma_speed_bytes_per_second(bytes, ticks);
+
+	uart_puts(name);
+	uart_puts("PASS (");
+	uart_putu(bytes);
+	uart_puts(" bytes, ");
+	uart_putu((uint32_t)ticks);
+	uart_puts(" ticks, ");
+	uart_putu(speed);
+	uart_puts(" B/s)\r\n");
+}
+
 static bool dma8_test(uint32_t round) {
 	uint32_t i;
+	uint64_t ticks = 0;
 	bool ok;
 
 	for (i = 0; i < DMA8_COUNT; i++) {
-		dma8_src[i] = (uint8_t)(0xa5u ^ (uint8_t)i ^ (uint8_t)round);
-		dma8_dst[i] = 0u;
+		dma_src.bytes[i] =
+		    (uint8_t)(0xa5u ^ (uint8_t)i ^ (uint8_t)round);
+		dma_dst.bytes[i] = 0u;
 	}
 
-	ok = dma_mem2mem_copy((uint32_t)dma8_src, (uint32_t)dma8_dst,
-			      DMA8_COUNT, DMA_SIZE_8BIT);
+	ok = dma_mem2mem_copy((uint32_t)dma_src.bytes, (uint32_t)dma_dst.bytes,
+			      DMA8_COUNT, DMA_SIZE_8BIT, &ticks);
 
 	uart_puts("DMA mem2mem 8-bit : ");
 	if (!ok) {
@@ -181,35 +226,34 @@ static bool dma8_test(uint32_t round) {
 	}
 
 	for (i = 0; i < DMA8_COUNT; i++) {
-		if (dma8_dst[i] != dma8_src[i]) {
+		if (dma_dst.bytes[i] != dma_src.bytes[i]) {
 			uart_puts("FAIL at byte ");
 			uart_putu(i);
 			uart_puts(": ");
-			console_hex32(dma8_dst[i]);
+			console_hex32(dma_dst.bytes[i]);
 			uart_puts(" != ");
-			console_hex32(dma8_src[i]);
+			console_hex32(dma_src.bytes[i]);
 			uart_puts("\r\n");
 			return false;
 		}
 	}
 
-	uart_puts("PASS (");
-	uart_putu(DMA8_COUNT);
-	uart_puts(" bytes)\r\n");
+	dma_print_result("", DMA8_COUNT, ticks);
 	return true;
 }
 
 static bool dma32_test(uint32_t round) {
 	uint32_t i;
+	uint64_t ticks = 0;
 	bool ok;
 
 	for (i = 0; i < DMA32_COUNT; i++) {
-		dma32_src[i] = 0x5a5a0000u ^ i ^ (round * 0x01010101u);
-		dma32_dst[i] = 0u;
+		dma_src.words[i] = 0x5a5a0000u ^ i ^ (round * 0x01010101u);
+		dma_dst.words[i] = 0u;
 	}
 
-	ok = dma_mem2mem_copy((uint32_t)dma32_src, (uint32_t)dma32_dst,
-			      DMA32_COUNT, DMA_SIZE_32BIT);
+	ok = dma_mem2mem_copy((uint32_t)dma_src.words, (uint32_t)dma_dst.words,
+			      DMA32_COUNT, DMA_SIZE_32BIT, &ticks);
 
 	uart_puts("DMA mem2mem 32-bit: ");
 	if (!ok) {
@@ -218,21 +262,19 @@ static bool dma32_test(uint32_t round) {
 	}
 
 	for (i = 0; i < DMA32_COUNT; i++) {
-		if (dma32_dst[i] != dma32_src[i]) {
+		if (dma_dst.words[i] != dma_src.words[i]) {
 			uart_puts("FAIL at word ");
 			uart_putu(i);
 			uart_puts(": ");
-			console_hex32(dma32_dst[i]);
+			console_hex32(dma_dst.words[i]);
 			uart_puts(" != ");
-			console_hex32(dma32_src[i]);
+			console_hex32(dma_src.words[i]);
 			uart_puts("\r\n");
 			return false;
 		}
 	}
 
-	uart_puts("PASS (");
-	uart_putu(DMA32_COUNT);
-	uart_puts(" words)\r\n");
+	dma_print_result("", DMA32_COUNT * 4u, ticks);
 	return true;
 }
 

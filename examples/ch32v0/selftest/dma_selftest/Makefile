@@ -18,17 +18,17 @@
 ##
 
 ##
-## CH32V003 TIM2 period self-test.
+## CH32V003 DMA memory-to-memory self-test.
 ##
-## TIM2 generates a 1 Hz update event; the measured period is printed on
-## USART1 (PD5, 115200 8N1).
+## DMA1 channel 1 copies SRAM blocks in MEM2MEM mode; PASS/FAIL progress is
+## printed on USART1 (PD5, 115200 8N1).
 ##
 
-PROJECT= timer_selftest_uart
+PROJECT= dma_selftest
 
 DEVICE?= ch32v003f4p6
 
-TEMPLATE_DIR?= $(abspath ../../..)
+TEMPLATE_DIR?= $(abspath ../../../..)
 
 CFILES= main.c
 
