@@ -187,11 +187,18 @@ static void spi_flash_init(void) {
 	gpio_set_mode(GPIOC, GPIO_MODE_AF_PP, GPIO5 | GPIO6);
 	gpio_set_mode(GPIOC, GPIO_MODE_IN_FLOATING, GPIO7);
 
+	/*
+	 * Select software NSS before setting MSTR.  With SSM=0 and a low NSS
+	 * pin, enabling master mode causes a mode fault, which clears MSTR and
+	 * SPE and makes every transfer time out in RXNE.
+	 */
+	spi_enable_software_slave_management(SPI1);
+	spi_set_nss_high(SPI1);
+	spi_clear_flag(SPI1, SPI_STATR_MODF);
+
 	/* Mode 0, 8-bit, MSB first, 48 MHz / 8 = 6 MHz SCK. */
 	spi_init_master(SPI1, SPI_BAUDRATE_PRESCALER_8, SPI_CPOL_LOW,
 			SPI_CPHA_FIRST, SPI_DFF_8BIT, SPI_BIT_ORDER_MSB_FIRST);
-	spi_enable_software_slave_management(SPI1);
-	spi_set_nss_high(SPI1);
 	spi_enable(SPI1);
 }
 
