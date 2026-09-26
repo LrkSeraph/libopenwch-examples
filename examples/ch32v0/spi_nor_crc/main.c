@@ -37,7 +37,9 @@
  *     xorout = 0xffffffff
  *
  * This is the usual CRC-32/ISO-HDLC ("Ethernet") used for flash images;
- * the standard check value for "123456789" is 0xcbf43926.
+ * the standard check value for "123456789" is 0xcbf43926.  When GCC has
+ * __builtin_rev_crc32_data8 it is used directly; older compilers get a small
+ * table-free reflected software fallback with the same result.
  *
  * Wiring:
  *   PA4 = CS   (software, active low)
@@ -56,10 +58,6 @@
 
 #ifndef __has_builtin
 #define __has_builtin(x) 0
-#endif
-
-#if !__has_builtin(__builtin_rev_crc32_data8)
-#error "This example needs GCC's CRC32 builtins"
 #endif
 
 #define UART_BAUD 115200u
@@ -81,8 +79,28 @@
 #define SPI_FLASH_CMD_RDID 0x9fu
 
 #define CRC32_POLYNOMIAL 0x04c11db7u
+#define CRC32_REFLECTED_POLYNOMIAL 0xedb88320u
 #define CRC32_INIT 0xffffffffu
 #define CRC32_XOROUT 0xffffffffu
+
+#if __has_builtin(__builtin_rev_crc32_data8)
+#define CRC32_UPDATE(crc, data)                                                \
+	__builtin_rev_crc32_data8((crc), (data), CRC32_POLYNOMIAL)
+#else
+static uint32_t crc32_soft_update(uint32_t crc, uint8_t data) {
+	unsigned i;
+
+	crc ^= data;
+	for (i = 0u; i < 8u; i++) {
+		uint32_t mask = (crc & 1u) ? 0xffffffffu : 0u;
+
+		crc = (crc >> 1) ^ (CRC32_REFLECTED_POLYNOMIAL & mask);
+	}
+
+	return crc;
+}
+#define CRC32_UPDATE(crc, data) crc32_soft_update((crc), (data))
+#endif
 
 static uint8_t flash_buffer[FLASH_CHUNK_SIZE];
 
@@ -305,7 +323,7 @@ static void spi_flash_read(uint32_t address, uint8_t *out, uint32_t length) {
 static uint32_t
 crc32_update(uint32_t crc, const uint8_t *data, uint32_t length) {
 	while (length-- != 0u) {
-		crc = __builtin_rev_crc32_data8(crc, *data++, CRC32_POLYNOMIAL);
+		crc = CRC32_UPDATE(crc, *data++);
 	}
 
 	return crc;
