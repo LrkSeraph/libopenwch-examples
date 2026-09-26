@@ -389,7 +389,7 @@ int main(void) {
 		console_puthex(capacity_code, 2u);
 		console_puts("\r\n");
 		console_puts(
-		    "  check CS (PA4), SCK (PA5), MISO (PA6), MOSI (PA7), "
+		    "  check CS (PC4), SCK (PC5), MOSI (PC6), MISO (PC7), "
 		    "VCC and GND\r\n");
 
 		for (;;) {
