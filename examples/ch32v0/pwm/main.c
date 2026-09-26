@@ -55,6 +55,12 @@
 #define BREATH_STEPS 32u
 #define BREATH_DELAY_MS 25u /* about 0.8 s up + 0.8 s down */
 
+/* Override on the command line, e.g. -DPWM_STARTUP_CHECK_MS=10000, when
+ * measuring PC2 or reading TIM2 registers during the startup check. */
+#ifndef PWM_STARTUP_CHECK_MS
+#define PWM_STARTUP_CHECK_MS 1000u
+#endif
+
 /*
  * Raised-cosine brightness curve, 0 at index 0 and 1000 at index 32.
  * It is smooth at both ends, which is what makes the LED look like it is
@@ -166,7 +172,7 @@ int main(void) {
 	/* Startup check: force the LED fully on for one second. */
 	uart_puts("startup: LED full on for 1 s\r\n");
 	pwm_set_duty((PWM_ACTIVE_LOW != 0) ? 0u : PWM_MAX_DUTY);
-	qingke_delay_ms(1000u);
+	qingke_delay_ms(PWM_STARTUP_CHECK_MS);
 
 	for (;;) {
 		uint16_t brightness = breath_table[phase];
