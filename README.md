@@ -1,90 +1,69 @@
 # libopenwch examples
 
-Working programs built on
-[libopenwch](https://github.com/LrkSeraph/libopenwch), grouped by chip family.
-They document each peripheral, act as the library's integration test, and are
-code to copy from.
-
-For a project skeleton, use
+Working programs for
+[libopenwch](https://github.com/LrkSeraph/libopenwch), grouped by family. They
+document peripherals, double as integration tests, and are meant to be copied.
+For a project skeleton use
 [libopenwch-template](https://github.com/LrkSeraph/libopenwch-template).
 
 ## Quick start
 
 ```sh
-git clone --recurse-submodules \
-    https://github.com/LrkSeraph/libopenwch-examples.git
+git clone --recurse-submodules https://github.com/LrkSeraph/libopenwch-examples.git
 cd libopenwch-examples/examples/ch32v0/blink
-make            # builds the library too, if needed
-make flash      # needs a WCH-Link programmer
+make            # builds libopenwch too if needed
+make flash      # WCH-Link + minichlink by default
 ```
 
 Without `--recurse-submodules`, run `git submodule update --init`; or build
-against another checkout with `make OPENWCH_DIR=/path/to/libopenwch`.
+against another checkout with `make OPENWCH_DIR=/path/to/libopenwch`. After a
+submodule source update, rebuild the archive once with `make -C libopenwch`.
 
-After the `libopenwch` submodule is updated, rebuild its archives once:
+| Family | Example | Device | Purpose |
+|---|---|---|---|
+| ch32v0 | `adc_dma_uart` | ch32v003f4p6 | PA1 ADC + DMA + mean on USART1 |
+| ch32v0 | `blink` | ch32v003f4p6 | 48 MHz HSI-PLL, active-low PC2 LED |
+| ch32v0 | `pwm` | ch32v003f4p6 | TIM2_CH2/PC2 1 kHz, raised-cosine breathing |
+| ch32v0 | `selftest` | ch32v003f4p6 | integrated RCC/SysTick/GPIO/USART/DMA/TIM/ADC/SPI/I2C/ESIG/EXTEN + IWDG/WWDG reset |
+| ch32v0 | `spi_nor_crc` | ch32v003f4p6 | SPI1 NOR detect, ID/capacity/SFDP, 4 KiB CRC32 |
+| ch32v0 | `uart_counter` | ch32v003f4p6 | chip id/sysclk + counter per second |
+| ch5xx58x | `ch582_ble_advertise` | ch582m | BLE peripheral "libopenwch" |
+| ch5xx58x | `ch582_blink` | ch582m | 32 MHz crystal + PLL to 60 MHz, PB4 LED |
+| ch5xx58x | `ch582_uart_counter` | ch582m | chip id/sysclk + counter on UART1 PA8 |
+
+`spi_nor_crc` checks first 16 pages (64 KiB); override with
+`make CFLAGS+=-DFLASH_PAGE_COUNT=N`. Build all:
 
 ```sh
-make -C libopenwch
+for d in examples/*/*/; do make -C "$d" || exit 1; done
 ```
-
-The per-example rule only builds the archive when it is missing, so a source
-update alone does not upgrade an already-built `libopenwch_*.a`.
-
-| Family | Example | Device | What it does |
-|---|---|---|---|
-| ch32v0 | `adc_dma_uart` | `ch32v003f4p6` | PA1 ADC continuous, DMA to RAM, mean on USART1 |
-| ch32v0 | `blink` | `ch32v003f4p6` | 48 MHz HSI PLL, active-low LED on PC2 |
-| ch32v0 | `pwm` | `ch32v003f4p6` | TIM2_CH2 on PC2 (partial remap 1), 1 kHz PWM with raised-cosine breathing brightness on active-low LED |
-| ch32v0 | `selftest/dma_selftest` | `ch32v003f4p6` | DMA1 channel 1 SRAM-to-SRAM 8/32-bit transfers; PASS/FAIL and measured throughput on USART1 |
-| ch32v0 | `spi_nor_crc` | `ch32v003f4p6` | SPI1 PC4/PC5/PC6/PC7, detects NOR flash, prints ID/capacity/SFDP, then CRC32 per 4 KiB page |
-| ch32v0 | `selftest/timer_selftest` | `ch32v003f4p6` | TIM1 and TIM2 1 Hz update; SysTick-measured periods and PASS/WARN on USART1 |
-| ch32v0 | `selftest/watchdog_selftest` | `ch32v003f4p6` | IWDG and WWDG deliberate resets; `.noinit` state and RCC reset flags report PASS on USART1 |
-| ch32v0 | `uart_counter` | `ch32v003f4p6` | prints chip id/sysclk, then a counter per second on USART1 PD5 |
-| ch5xx58x | `ch582_ble_advertise` | `ch582m` | BLE peripheral advertising as "libopenwch" |
-| ch5xx58x | `ch582_blink` | `ch582m` | 32 MHz crystal + PLL to 60 MHz, LED on PB4 |
-| ch5xx58x | `ch582_uart_counter` | `ch582m` | prints chip id/sysclk, then a counter per second on UART1 PA8 |
-
-`spi_nor_crc` checksums the first 16 pages (64 KiB) by default; override with
-`make CFLAGS+=-DFLASH_PAGE_COUNT=N`.  Each example links one family archive;
-`DEVICE` can be any sibling part.
 
 ## Layout and variables
 
-```
-libopenwch/                 libopenwch git submodule
-rules/                      toolchain discovery and build/flash rules
+```text
+libopenwch/                 submodule
+rules/                      toolchain/build/flash rules
 examples/<family>/<name>/   main.c + Makefile
-examples/ch32v0/selftest/   grouped DMA and timer self-tests
+examples/ch32v0/selftest/   integrated self-test
 ```
 
-Each example is independent; build all with:
-
-```sh
-for d in examples/*/*/; do make -C "$d" || exit 1; make -C "$d" clean; done
-```
-
-Important variables: `PROJECT`, `DEVICE`, `OPENWCH_DIR`, `PREFIX`,
-`CFILES`, `CFLAGS`, `LIBOPENWCH_NOSTDLIB`, `LIBOPENWCH_BLE`, `PROGRAMMER`,
-`WCHLINK`, `MINICHLINK`.
+Key variables: `PROJECT`, `DEVICE`, `OPENWCH_DIR`, `PREFIX`, `CFILES`,
+`CFLAGS`, `LIBOPENWCH_NOSTDLIB`, `LIBOPENWCH_BLE`, `PROGRAMMER`, `WCHLINK`,
+`MINICHLINK`.
 
 ## Flash and output
 
 `make flash` defaults to [minichlink](https://github.com/cnlohr/ch32fun);
-`PROGRAMMER=wchlink` uses
-[libopenwch-tools](https://github.com/LrkSeraph/libopenwch-tools) from `PATH`
-or `WCHLINK`. The examples do not carry that tool.
+`PROGRAMMER=wchlink` uses [libopenwch-tools](https://github.com/LrkSeraph/libopenwch-tools)
+from `PATH` or `WCHLINK`.
 
 | File | Use |
 |---|---|
-| `<project>.elf` | debug, `objdump`, GDB |
+| `<project>.elf` | debug, objdump, GDB |
 | `<project>.bin` | `make flash` |
-| `<project>.hex` | WCH's official utility |
-| `<project>.map`, `.list` | link map and disassembly |
+| `<project>.hex` | WCH utility |
+| `.map`, `.list` | link map / disassembly |
 
-Notes:
-
-* `-nostartfiles` is mandatory; libopenwch owns `_start` and the vector table.
-* Do not add `-march`/`-mabi` by hand; they come from `DEVICE`.
-* CH32V00x `gpio_set_mode()` takes WCH's opaque `GPIO_Mode_*` token.
-* `LIBOPENWCH_BLE=1` links WCH's Apache-2.0 BLE stack and needs a
-  `BLE_HEAP_DEFINE` heap; see `ch5xx58x/ch582_ble_advertise`.
+Notes: `-nostartfiles` is mandatory; do not add `-march`/`-mabi` by hand;
+CH32V00x `gpio_set_mode()` uses opaque `GPIO_Mode_*` tokens;
+`LIBOPENWCH_BLE=1` links WCH's Apache-2.0 stack and needs `BLE_HEAP_DEFINE`.

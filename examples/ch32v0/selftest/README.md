@@ -1,24 +1,29 @@
-# CH32V003 self-tests
+# CH32V003 integrated self-test
 
-These programs exercise one peripheral in isolation and print progress and
-PASS/FAIL results on USART1 (PD5, 115200 8N1).
+One firmware image exercises on-chip modules and prints PASS/FAIL on USART1
+(PD5, 115200 8N1).
 
-| Test | What it checks |
+| Case | Checks |
 |---|---|
-| `dma_selftest` | DMA1 MEM2MEM 8-bit and 32-bit SRAM transfers, plus measured throughput |
-| `timer_selftest` | TIM1 and TIM2 1 Hz update periods, measured with the SysTick reference counter |
-| `watchdog_selftest` | IWDG and WWDG reset behavior, with state kept across resets in `.noinit` |
+| `rcc clock tree` | 48 MHz HSI-PLL, prescalers, published frequencies, `rcc_measure_clocks()` |
+| `systick reference` | 48 MHz source, 1 ms tick, counter gate |
+| `gpio output/input` | CFGLR nibbles, OUTDR, BSHR/BCR, toggle/write |
+| `usart1` | baud divider, frame bits, parity, stop, clock/flow, TC |
+| `dma1 mem2mem` | 8/16/32-bit SRAM transfers, offsets, flags, fields |
+| `tim1/tim2` | 1 Hz periods, PSC/ATRLR/CNT, OC/IC fields |
+| `adc1 internal` | calibration, regular/injected, offset, IRQ/DMA |
+| `spi1` | master fields, software NSS, CRC, DMA/IRQ, TXE |
+| `i2c1` | FREQ/CCR, own address, PE/ACK/PEC/DMA/IRQ |
+| `esig/exten` | flash size, 96-bit UID, lockup reset, LDO mode |
+| `IWDG` / `WWDG` | deliberate resets, state kept in `.noinit` |
 
-Build the group:
+IWDG/WWDG intentionally reset the part; earlier results are retained in
+`.noinit` until the final summary.
 
 ```sh
 make
+make flash          # PROGRAMMER=wchlink or minichlink
 ```
 
-Or one test at a time:
-
-```sh
-make -C dma_selftest
-make -C timer_selftest
-make -C watchdog_selftest
-```
+`DEVICE` can be another CH32V00x sibling, but the image is sized for
+CH32V003F4P6 (16 KiB flash / 2 KiB RAM).
