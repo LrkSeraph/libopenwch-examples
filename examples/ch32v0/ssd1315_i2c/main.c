@@ -104,6 +104,10 @@
 #define SSD1315_ALL_ON 0
 #endif
 
+#ifndef SSD1315_USE_BITBANG
+#define SSD1315_USE_BITBANG 0
+#endif
+
 #if SSD1315_ALL_ON
 #define SSD1315_ENTIRE_DISPLAY_MODE 0xa5u
 #else
@@ -120,6 +124,8 @@
 static uint8_t framebuffer[SSD1315_FB_SIZE];
 
 /* --- small I2C master write path ---------------------------------------- */
+
+#if !SSD1315_USE_BITBANG
 
 static int i2c_wait_flag(uint16_t flag, int set) {
 	uint32_t timeout;
@@ -193,6 +199,122 @@ static int ssd1315_write(uint8_t control, const uint8_t *data, size_t length) {
 
 	return 0;
 }
+
+#else /* SSD1315_USE_BITBANG */
+
+/*
+ * Software I2C with the CH32V003 internal pull-ups.  The hardware I2C block
+ * needs external pull-ups in alternate-function open-drain mode; this path is
+ * a diagnostic fallback for boards that do not have them.
+ */
+#define SSD1315_BITBANG_SCL GPIO5
+#define SSD1315_BITBANG_SDA GPIO6
+
+static void i2c_bitbang_delay(void) {
+	for (volatile unsigned int i = 0; i < 80u; i++) {
+		__asm__ volatile("nop");
+	}
+}
+
+static void scl_release(void) {
+	gpio_set_mode(GPIOC, GPIO_MODE_IPU, SSD1315_BITBANG_SCL);
+}
+
+static void scl_low(void) {
+	gpio_clear(GPIOC, SSD1315_BITBANG_SCL);
+	gpio_set_mode(GPIOC, GPIO_MODE_OUT_OD, SSD1315_BITBANG_SCL);
+}
+
+static void sda_release(void) {
+	gpio_set_mode(GPIOC, GPIO_MODE_IPU, SSD1315_BITBANG_SDA);
+}
+
+static void sda_low(void) {
+	gpio_clear(GPIOC, SSD1315_BITBANG_SDA);
+	gpio_set_mode(GPIOC, GPIO_MODE_OUT_OD, SSD1315_BITBANG_SDA);
+}
+
+static int sda_read(void) {
+	gpio_set_mode(GPIOC, GPIO_MODE_IPU, SSD1315_BITBANG_SDA);
+	return gpio_get(GPIOC, SSD1315_BITBANG_SDA) != 0u;
+}
+
+static void i2c_bitbang_start(void) {
+	sda_release();
+	scl_release();
+	i2c_bitbang_delay();
+	sda_low();
+	i2c_bitbang_delay();
+	scl_low();
+	i2c_bitbang_delay();
+}
+
+static void i2c_bitbang_stop(void) {
+	sda_low();
+	i2c_bitbang_delay();
+	scl_release();
+	i2c_bitbang_delay();
+	sda_release();
+	i2c_bitbang_delay();
+}
+
+static int i2c_bitbang_write_byte(uint8_t value) {
+	unsigned int i;
+
+	for (i = 0; i < 8u; i++) {
+		if ((value & 0x80u) != 0u) {
+			sda_release();
+		} else {
+			sda_low();
+		}
+
+		i2c_bitbang_delay();
+		scl_release();
+		i2c_bitbang_delay();
+		scl_low();
+		i2c_bitbang_delay();
+		value <<= 1;
+	}
+
+	sda_release();
+	i2c_bitbang_delay();
+	scl_release();
+	i2c_bitbang_delay();
+	int nack = sda_read();
+	scl_low();
+	i2c_bitbang_delay();
+
+	return nack;
+}
+
+static int ssd1315_write(uint8_t control, const uint8_t *data, size_t length) {
+	size_t i;
+
+	i2c_bitbang_start();
+
+	if (i2c_bitbang_write_byte((uint8_t)SSD1315_I2C_ADDRESS) != 0) {
+		goto fail;
+	}
+
+	if (i2c_bitbang_write_byte(control) != 0) {
+		goto fail;
+	}
+
+	for (i = 0; i < length; i++) {
+		if (i2c_bitbang_write_byte(data[i]) != 0) {
+			goto fail;
+		}
+	}
+
+	i2c_bitbang_stop();
+	return 0;
+
+fail:
+	i2c_bitbang_stop();
+	return -1;
+}
+
+#endif /* SSD1315_USE_BITBANG */
 
 static int ssd1315_write_commands(const uint8_t *commands, size_t length) {
 	return ssd1315_write(SSD1315_CONTROL_COMMAND, commands, length);
@@ -319,7 +441,7 @@ static int ssd1315_init(void) {
 	return 0;
 }
 
-static int ssd1315_refresh(void) {
+static int __attribute__((unused)) ssd1315_refresh(void) {
 	static const uint8_t window[] = {
 	    SSD1315_SET_COLUMN_ADDR, 0x00u, SSD1315_WIDTH - 1u,
 	    SSD1315_SET_PAGE_ADDR,   0x00u, SSD1315_PAGES - 1u,
@@ -335,7 +457,7 @@ static int ssd1315_refresh(void) {
 
 /* --- demo pattern -------------------------------------------------------- */
 
-static void draw_pattern(uint8_t phase) {
+static void __attribute__((unused)) draw_pattern(uint8_t phase) {
 	uint16_t x;
 	uint16_t box_x;
 
@@ -367,6 +489,12 @@ int main(void) {
 	rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_PLL_HSI_48MHZ]);
 
 	rcc_periph_clock_enable(RCC_GPIOC);
+
+#if SSD1315_USE_BITBANG
+	/* Software I2C on PC5/PC6 with the internal pull-ups. */
+	gpio_set_mode(GPIOC, GPIO_MODE_IPU, GPIO5 | GPIO6);
+	gpio_set(GPIOC, GPIO5 | GPIO6);
+#else
 	rcc_periph_clock_enable(RCC_AFIO);
 	rcc_periph_clock_enable(RCC_I2C1);
 
@@ -393,6 +521,7 @@ int main(void) {
 	i2c_init_master(SSD1315_I2C, rcc_apb1_frequency, I2C_SPEED_STANDARD,
 			I2C_CCR_DUTY_2);
 	i2c_enable(SSD1315_I2C);
+#endif /* SSD1315_USE_BITBANG */
 
 	/* Let the panel finish its own power-on reset before commands. */
 	delay_loops(120000u);
@@ -403,6 +532,12 @@ int main(void) {
 		}
 	}
 
+#if SSD1315_ALL_ON
+	/* A5h already forced every pixel on; no framebuffer writes needed. */
+	for (;;) {
+		delay_loops(120000u);
+	}
+#else
 	for (;;) {
 		draw_pattern(phase);
 
@@ -415,6 +550,7 @@ int main(void) {
 		phase++;
 		delay_loops(80000u);
 	}
+#endif
 
 	/* Not reached. */
 	return 0;
