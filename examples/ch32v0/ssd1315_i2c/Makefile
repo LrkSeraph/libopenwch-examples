@@ -20,9 +20,10 @@
 ##
 ## SSD1315 128x64 OLED on I2C1 (address 0x78).
 ##
-## Pin mapping:
-##   SSD1315_I2C_PINS=remap    PC5 = SCL, PC6 = SDA (default)
-##   SSD1315_I2C_PINS=default  PC2 = SCL, PC1 = SDA
+## Pin mapping (`SSD1315_I2C_PINS`):
+##   0 / default   PC2 = SCL, PC1 = SDA
+##   1 / partial   PD1 = SCL, PD0 = SDA
+##   2 / full      PC5 = SCL, PC6 = SDA (default)
 ##
 
 PROJECT		= ssd1315_i2c
@@ -30,15 +31,27 @@ DEVICE		?= ch32v003f4p6
 TEMPLATE_DIR	?= $(abspath ../../..)
 CFILES		= main.c
 
-SSD1315_I2C_PINS ?= remap
+SSD1315_I2C_PINS ?= 2
 
-ifeq ($(SSD1315_I2C_PINS),remap)
-DEFS += -DSSD1315_I2C_REMAP=1
+ifeq ($(SSD1315_I2C_PINS),0)
+SSD1315_I2C_MAP_INDEX := 0
 else ifeq ($(SSD1315_I2C_PINS),default)
-DEFS += -DSSD1315_I2C_REMAP=0
+SSD1315_I2C_MAP_INDEX := 0
+else ifeq ($(SSD1315_I2C_PINS),1)
+SSD1315_I2C_MAP_INDEX := 1
+else ifeq ($(SSD1315_I2C_PINS),partial)
+SSD1315_I2C_MAP_INDEX := 1
+else ifeq ($(SSD1315_I2C_PINS),2)
+SSD1315_I2C_MAP_INDEX := 2
+else ifeq ($(SSD1315_I2C_PINS),full)
+SSD1315_I2C_MAP_INDEX := 2
+else ifeq ($(SSD1315_I2C_PINS),remap)
+SSD1315_I2C_MAP_INDEX := 2
 else
-$(error SSD1315_I2C_PINS must be remap or default)
+$(error SSD1315_I2C_PINS must be 0/default, 1/partial or 2/full/remap)
 endif
+
+DEFS += -DSSD1315_I2C_MAP=$(SSD1315_I2C_MAP_INDEX)
 
 include $(TEMPLATE_DIR)/rules/rules.mk
 
@@ -49,7 +62,7 @@ PINS_STAMP = $(BUILD_DIR)/.ssd1315_i2c_pins
 
 $(PINS_STAMP): FORCE
 	@mkdir -p $(dir $@)
-	@printf '%s\n' '$(SSD1315_I2C_PINS)' > $@.new
+	@printf '%s\n' '$(SSD1315_I2C_MAP_INDEX)' > $@.new
 	@cmp -s $@.new $@ || mv $@.new $@
 	@rm -f $@.new
 

@@ -20,13 +20,12 @@
 /*
  * SSD1315 128x64 OLED over hardware I2C1.
  *
- * Build-time wiring selection:
+ * Build-time wiring selection (`SSD1315_I2C_PINS`):
  *
- *   make SSD1315_I2C_PINS=default
- *       PC2 = I2C1 SCL, PC1 = I2C1 SDA
- *
- *   make SSD1315_I2C_PINS=remap       (default)
- *       PC5 = I2C1 SCL (SCL2), PC6 = I2C1 SDA (SDA2)
+ *   0 / default   PC2 = I2C1 SCL, PC1 = I2C1 SDA
+ *   1 / partial   PD1 = I2C1 SCL, PD0 = I2C1 SDA
+ *   2 / full      PC5 = I2C1 SCL (SCL2), PC6 = I2C1 SDA (SDA2)
+ *                 (this is the default)
  *
  *   3V3 -> OLED VCC
  *   GND -> OLED GND
@@ -53,8 +52,8 @@
 #define SSD1315_I2C_ADDRESS 0x78u
 #endif
 
-#ifndef SSD1315_I2C_REMAP
-#define SSD1315_I2C_REMAP 1
+#ifndef SSD1315_I2C_MAP
+#define SSD1315_I2C_MAP 2
 #endif
 
 #define SSD1315_WIDTH 128u
@@ -357,16 +356,23 @@ int main(void) {
 	rcc_periph_clock_enable(RCC_I2C1);
 
 	/*
-	 * Select the I2C1 pin mapping at build time:
-	 *   SSD1315_I2C_REMAP=1 -> full remap: SCL = PC5, SDA = PC6
-	 *   SSD1315_I2C_REMAP=0 -> default:    SCL = PC2, SDA = PC1
+	 * I2C1 pin mapping selected by SSD1315_I2C_MAP:
+	 *   0 = default: SCL = PC2, SDA = PC1
+	 *   1 = partial: SCL = PD1, SDA = PD0
+	 *   2 = full:    SCL = PC5, SDA = PC6
 	 * Pins are open-drain alternate function; bus pull-ups are external.
 	 */
-#if SSD1315_I2C_REMAP
+#if SSD1315_I2C_MAP == 0
+	gpio_set_mode(GPIOC, GPIO_MODE_AF_OD, GPIO1 | GPIO2);
+#elif SSD1315_I2C_MAP == 1
+	rcc_periph_clock_enable(RCC_GPIOD);
+	gpio_i2c1_remap(GPIO_REMAP_I2C1_PARTIAL);
+	gpio_set_mode(GPIOD, GPIO_MODE_AF_OD, GPIO0 | GPIO1);
+#elif SSD1315_I2C_MAP == 2
 	gpio_i2c1_remap(GPIO_REMAP_I2C1_FULL);
 	gpio_set_mode(GPIOC, GPIO_MODE_AF_OD, GPIO5 | GPIO6);
 #else
-	gpio_set_mode(GPIOC, GPIO_MODE_AF_OD, GPIO1 | GPIO2);
+#error "SSD1315_I2C_MAP must be 0 (default), 1 (partial) or 2 (full)"
 #endif
 
 	i2c_init_master(SSD1315_I2C, rcc_apb1_frequency, I2C_SPEED_STANDARD,
