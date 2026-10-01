@@ -35,10 +35,10 @@ submodule source update, rebuild the archive once with `make -C libopenwch`.
 `spi_nor_crc` checks first 16 pages (64 KiB); override with
 `make CFLAGS+=-DFLASH_PAGE_COUNT=N`. The SSD1315 example defaults to full
 remap `PC5/PC6`; use `SSD1315_I2C_PINS=0` for default `PC1/PC2` or `1` for
-partial `PD0/PD1`. Diagnostic builds: `SSD1315_ALL_ON=1` sends A5h to light
-every pixel; `SSD1315_USE_INTERNAL_IREF=1` enables the on-chip IREF;
-`SSD1315_USE_BITBANG=1` uses PC5/PC6 software I2C with internal pull-ups.
-Build all:
+partial `PD0/PD1`. The SSD1315 example defaults to software I2C on PC5/PC6
+with internal pull-ups (`SSD1315_USE_BITBANG=1`) and internal IREF;
+`SSD1315_USE_BITBANG=0` selects hardware I2C1 and requires external pull-ups.
+Diagnostics: `SSD1315_ALL_ON=1` lights every pixel. Build all:
 
 ```sh
 for d in examples/*/*/; do make -C "$d" || exit 1; done
