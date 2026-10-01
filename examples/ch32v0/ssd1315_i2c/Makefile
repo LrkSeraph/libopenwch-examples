@@ -25,10 +25,10 @@
 ##   SSD1315_I2C_PINS=default  PC2 = SCL, PC1 = SDA
 ##
 
-PROJECT= ssd1315_i2c
-DEVICE?= ch32v003f4p6
-TEMPLATE_DIR?= $(abspath ../../..)
-CFILES= main.c
+PROJECT		= ssd1315_i2c
+DEVICE		?= ch32v003f4p6
+TEMPLATE_DIR	?= $(abspath ../../..)
+CFILES		= main.c
 
 SSD1315_I2C_PINS ?= remap
 
@@ -41,3 +41,19 @@ $(error SSD1315_I2C_PINS must be remap or default)
 endif
 
 include $(TEMPLATE_DIR)/rules/rules.mk
+
+## Rebuild only when the pin-selection value changes.  DEFS is not tracked by
+## make, so a small stamp records the selected mapping and is a prerequisite
+## of the objects.
+PINS_STAMP = $(BUILD_DIR)/.ssd1315_i2c_pins
+
+$(PINS_STAMP): FORCE
+	@mkdir -p $(dir $@)
+	@printf '%s\n' '$(SSD1315_I2C_PINS)' > $@.new
+	@cmp -s $@.new $@ || mv $@.new $@
+	@rm -f $@.new
+
+$(OBJS): $(PINS_STAMP)
+
+.PHONY: FORCE
+FORCE:
