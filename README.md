@@ -24,7 +24,7 @@ submodule source update, rebuild the archive once with `make -C libopenwch`.
 | ch32v0 | `adc_dma_uart` | ch32v003f4p6 | PA1 ADC + DMA + mean on USART1 |
 | ch32v0 | `blink` | ch32v003f4p6 | 48 MHz HSI-PLL, active-low PC2 LED |
 | ch32v0 | `pwm` | ch32v003f4p6 | TIM2_CH2/PC2 1 kHz, raised-cosine breathing |
-| ch32v0 | `ssd1315_i2c` | ch32v003f4p6 | SSD1315 128x64 OLED on I2C1 full remap PC5/PC6, moving test pattern |
+| ch32v0 | `ssd1315_i2c` | ch32v003f4p6 | SSD1315 128x64 OLED on I2C1, default or full-remap pins, moving test pattern |
 | ch32v0 | `selftest` | ch32v003f4p6 | integrated RCC/SysTick/GPIO/USART/DMA/TIM/ADC/SPI/I2C/ESIG/EXTEN + IWDG/WWDG reset |
 | ch32v0 | `spi_nor_crc` | ch32v003f4p6 | SPI1 NOR detect, ID/capacity/SFDP, 4 KiB CRC32 |
 | ch32v0 | `uart_counter` | ch32v003f4p6 | chip id/sysclk + counter per second |
@@ -33,7 +33,8 @@ submodule source update, rebuild the archive once with `make -C libopenwch`.
 | ch5xx58x | `ch582_uart_counter` | ch582m | chip id/sysclk + counter on UART1 PA8 |
 
 `spi_nor_crc` checks first 16 pages (64 KiB); override with
-`make CFLAGS+=-DFLASH_PAGE_COUNT=N`. Build all:
+`make CFLAGS+=-DFLASH_PAGE_COUNT=N`. The SSD1315 example defaults to full
+remap `PC5/PC6`; use `make SSD1315_I2C_PINS=default` for `PC1/PC2`. Build all:
 
 ```sh
 for d in examples/*/*/; do make -C "$d" || exit 1; done

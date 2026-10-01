@@ -20,12 +20,16 @@
 /*
  * SSD1315 128x64 OLED over hardware I2C1.
  *
- * Wiring (CH32V003F4P6 / I2C1 full remap):
+ * Build-time wiring selection:
  *
- *   PC6  I2C1 SDA (SDA2) -> OLED SDA
- *   PC5  I2C1 SCL (SCL2) -> OLED SCL
- *   3V3                  -> OLED VCC
- *   GND                  -> OLED GND
+ *   make SSD1315_I2C_PINS=default
+ *       PC2 = I2C1 SCL, PC1 = I2C1 SDA
+ *
+ *   make SSD1315_I2C_PINS=remap       (default)
+ *       PC5 = I2C1 SCL (SCL2), PC6 = I2C1 SDA (SDA2)
+ *
+ *   3V3 -> OLED VCC
+ *   GND -> OLED GND
  *
  * The panel must have its I2C address select tied to the default 0x78
  * write address (0x3c 7-bit).  Override with
@@ -47,6 +51,10 @@
 /* 8-bit write address used by the common 128x64 SSD1315 modules. */
 #ifndef SSD1315_I2C_ADDRESS
 #define SSD1315_I2C_ADDRESS 0x78u
+#endif
+
+#ifndef SSD1315_I2C_REMAP
+#define SSD1315_I2C_REMAP 1
 #endif
 
 #define SSD1315_WIDTH 128u
@@ -349,11 +357,17 @@ int main(void) {
 	rcc_periph_clock_enable(RCC_I2C1);
 
 	/*
- * CH32V003 I2C1 full remap: SCL = PC5, SDA = PC6.  The pins are
- * open-drain alternate function; the bus pull-ups are external.
- */
+	 * Select the I2C1 pin mapping at build time:
+	 *   SSD1315_I2C_REMAP=1 -> full remap: SCL = PC5, SDA = PC6
+	 *   SSD1315_I2C_REMAP=0 -> default:    SCL = PC2, SDA = PC1
+	 * Pins are open-drain alternate function; bus pull-ups are external.
+	 */
+#if SSD1315_I2C_REMAP
 	gpio_i2c1_remap(GPIO_REMAP_I2C1_FULL);
 	gpio_set_mode(GPIOC, GPIO_MODE_AF_OD, GPIO5 | GPIO6);
+#else
+	gpio_set_mode(GPIOC, GPIO_MODE_AF_OD, GPIO1 | GPIO2);
+#endif
 
 	i2c_init_master(SSD1315_I2C, rcc_apb1_frequency, I2C_SPEED_STANDARD,
 			I2C_CCR_DUTY_2);

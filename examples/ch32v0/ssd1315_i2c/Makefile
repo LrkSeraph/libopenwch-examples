@@ -18,12 +18,26 @@
 ##
 
 ##
-## SSD1315 128x64 OLED on I2C1 full remap: PC5 = SCL, PC6 = SDA (0x78).
+## SSD1315 128x64 OLED on I2C1 (address 0x78).
+##
+## Pin mapping:
+##   SSD1315_I2C_PINS=remap    PC5 = SCL, PC6 = SDA (default)
+##   SSD1315_I2C_PINS=default  PC2 = SCL, PC1 = SDA
 ##
 
 PROJECT= ssd1315_i2c
 DEVICE?= ch32v003f4p6
 TEMPLATE_DIR?= $(abspath ../../..)
 CFILES= main.c
+
+SSD1315_I2C_PINS ?= remap
+
+ifeq ($(SSD1315_I2C_PINS),remap)
+DEFS += -DSSD1315_I2C_REMAP=1
+else ifeq ($(SSD1315_I2C_PINS),default)
+DEFS += -DSSD1315_I2C_REMAP=0
+else
+$(error SSD1315_I2C_PINS must be remap or default)
+endif
 
 include $(TEMPLATE_DIR)/rules/rules.mk
