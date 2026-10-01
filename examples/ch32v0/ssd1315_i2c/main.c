@@ -108,6 +108,10 @@
 #define SSD1315_USE_BITBANG 0
 #endif
 
+#ifndef SSD1315_ACK_PROBE
+#define SSD1315_ACK_PROBE 0
+#endif
+
 #if SSD1315_ALL_ON
 #define SSD1315_ENTIRE_DISPLAY_MODE 0xa5u
 #else
@@ -122,6 +126,10 @@
 #define SSD1315_CONTROL_DATA 0x40u
 
 static uint8_t framebuffer[SSD1315_FB_SIZE];
+
+#if SSD1315_ACK_PROBE
+volatile uint32_t ssd1315_probe_result;
+#endif
 
 /* --- small I2C master write path ---------------------------------------- */
 
@@ -384,7 +392,21 @@ fb_fill_rect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, int on) {
 
 /* --- panel --------------------------------------------------------------- */
 
-static int ssd1315_init(void) {
+#if SSD1315_ACK_PROBE
+static void ssd1315_probe(void) {
+	static const uint8_t command = SSD1315_DISPLAY_OFF;
+
+	ssd1315_probe_result = 0x11111111u;
+
+	if (ssd1315_write(SSD1315_CONTROL_COMMAND, &command, 1) == 0) {
+		ssd1315_probe_result = 0x5a5a5a5au;
+	} else {
+		ssd1315_probe_result = 0xdeadbeefu;
+	}
+}
+#endif
+
+static int __attribute__((unused)) ssd1315_init(void) {
 	static const uint8_t init[] = {
 	    SSD1315_DISPLAY_OFF,
 	    SSD1315_SET_CLOCK_DIV,
@@ -526,6 +548,13 @@ int main(void) {
 	/* Let the panel finish its own power-on reset before commands. */
 	delay_loops(120000u);
 
+#if SSD1315_ACK_PROBE
+	ssd1315_probe();
+
+	for (;;) {
+		delay_loops(120000u);
+	}
+#else
 	if (ssd1315_init() != 0) {
 		for (;;) {
 			delay_loops(120000u);
@@ -551,6 +580,8 @@ int main(void) {
 		delay_loops(80000u);
 	}
 #endif
+
+#endif /* SSD1315_ACK_PROBE */
 
 	/* Not reached. */
 	return 0;
