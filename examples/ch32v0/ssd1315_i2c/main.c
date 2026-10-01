@@ -95,6 +95,21 @@
 #define SSD1315_USE_INTERNAL_IREF 0
 #endif
 
+/*
+ * Diagnostic mode: 1 forces command A5h, which turns every pixel on without
+ * relying on the framebuffer or GDDRAM write path.  Use it to tell a panel
+ * power/configuration problem from a data-write problem.
+ */
+#ifndef SSD1315_ALL_ON
+#define SSD1315_ALL_ON 0
+#endif
+
+#if SSD1315_ALL_ON
+#define SSD1315_ENTIRE_DISPLAY_MODE 0xa5u
+#else
+#define SSD1315_ENTIRE_DISPLAY_MODE SSD1315_ENTIRE_DISPLAY_ON
+#endif
+
 #define SSD1315_SET_COLUMN_ADDR 0x21u
 #define SSD1315_SET_PAGE_ADDR 0x22u
 
@@ -284,7 +299,7 @@ static int ssd1315_init(void) {
 	    0x30u,
 #endif
 
-	    SSD1315_ENTIRE_DISPLAY_ON,
+	    SSD1315_ENTIRE_DISPLAY_MODE,
 	    SSD1315_NORMAL_DISPLAY,
 	    SSD1315_DEACTIVATE_SCROLL,
 

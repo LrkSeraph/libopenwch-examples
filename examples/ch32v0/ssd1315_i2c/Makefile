@@ -32,6 +32,9 @@ TEMPLATE_DIR	?= $(abspath ../../..)
 CFILES		= main.c
 
 SSD1315_I2C_PINS ?= 2
+SSD1315_I2C_ADDRESS ?= 0x78
+SSD1315_USE_INTERNAL_IREF ?= 0
+SSD1315_ALL_ON ?= 0
 
 ifeq ($(SSD1315_I2C_PINS),0)
 SSD1315_I2C_MAP_INDEX := 0
@@ -52,6 +55,9 @@ $(error SSD1315_I2C_PINS must be 0/default, 1/partial or 2/full/remap)
 endif
 
 DEFS += -DSSD1315_I2C_MAP=$(SSD1315_I2C_MAP_INDEX)
+DEFS += -DSSD1315_I2C_ADDRESS=$(SSD1315_I2C_ADDRESS)
+DEFS += -DSSD1315_USE_INTERNAL_IREF=$(SSD1315_USE_INTERNAL_IREF)
+DEFS += -DSSD1315_ALL_ON=$(SSD1315_ALL_ON)
 
 include $(TEMPLATE_DIR)/rules/rules.mk
 
@@ -59,10 +65,11 @@ include $(TEMPLATE_DIR)/rules/rules.mk
 ## make, so a small stamp records the selected mapping and is a prerequisite
 ## of the objects.
 PINS_STAMP = $(BUILD_DIR)/.ssd1315_i2c_pins
+SSD1315_CONFIG = $(SSD1315_I2C_MAP_INDEX):$(SSD1315_I2C_ADDRESS):$(SSD1315_USE_INTERNAL_IREF):$(SSD1315_ALL_ON)
 
 $(PINS_STAMP): FORCE
 	@mkdir -p $(dir $@)
-	@printf '%s\n' '$(SSD1315_I2C_MAP_INDEX)' > $@.new
+	@printf '%s\n' '$(SSD1315_CONFIG)' > $@.new
 	@cmp -s $@.new $@ || mv $@.new $@
 	@rm -f $@.new
 
