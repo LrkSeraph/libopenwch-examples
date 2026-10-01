@@ -18,7 +18,7 @@
 ##
 
 ##
-## SSD1315 128x64 OLED on I2C1 PC1/PC2 (default address 0x78).
+## SSD1315 128x64 OLED on I2C1 full remap: PC5 = SCL, PC6 = SDA (0x78).
 ##
 
 PROJECT= ssd1315_i2c

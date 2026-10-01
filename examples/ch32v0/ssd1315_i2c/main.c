@@ -20,12 +20,12 @@
 /*
  * SSD1315 128x64 OLED over hardware I2C1.
  *
- * Wiring (CH32V003F4P6 / default I2C1 pins, no remap):
+ * Wiring (CH32V003F4P6 / I2C1 full remap):
  *
- *   PC1  I2C1 SDA  -> OLED SDA
- *   PC2  I2C1 SCL  -> OLED SCL
- *   3V3             -> OLED VCC
- *   GND             -> OLED GND
+ *   PC6  I2C1 SDA (SDA2) -> OLED SDA
+ *   PC5  I2C1 SCL (SCL2) -> OLED SCL
+ *   3V3                  -> OLED VCC
+ *   GND                  -> OLED GND
  *
  * The panel must have its I2C address select tied to the default 0x78
  * write address (0x3c 7-bit).  Override with
@@ -348,7 +348,12 @@ int main(void) {
 	rcc_periph_clock_enable(RCC_AFIO);
 	rcc_periph_clock_enable(RCC_I2C1);
 
-	gpio_set_mode(GPIOC, GPIO_MODE_AF_OD, GPIO1 | GPIO2);
+	/*
+ * CH32V003 I2C1 full remap: SCL = PC5, SDA = PC6.  The pins are
+ * open-drain alternate function; the bus pull-ups are external.
+ */
+	gpio_i2c1_remap(GPIO_REMAP_I2C1_FULL);
+	gpio_set_mode(GPIOC, GPIO_MODE_AF_OD, GPIO5 | GPIO6);
 
 	i2c_init_master(SSD1315_I2C, rcc_apb1_frequency, I2C_SPEED_STANDARD,
 			I2C_CCR_DUTY_2);
