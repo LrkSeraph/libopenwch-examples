@@ -78,10 +78,12 @@ include $(TEMPLATE_DIR)/rules/toolchain.mk
 ##
 ## Three layouts are understood, in this order:
 ##
+##   * a sibling checkout, ../libopenwch, which is preferred in the shared
+##     incubator workspace so that examples always build against the current
+##     libopenwch HEAD instead of a pinned submodule commit;
 ##   * the submodule, ./libopenwch inside this repository, which is what a
-##     --recurse-submodules clone gives you and therefore the normal case;
-##   * a sibling checkout, ../libopenwch, for someone who would rather keep one
-##     shared copy of the library than one per repository;
+##     --recurse-submodules clone gives you and therefore the normal case for
+##     standalone example clones;
 ##   * this repository sitting inside a libopenwch checkout, where the parent
 ##     directory is libopenwch.
 ##
@@ -90,17 +92,20 @@ include $(TEMPLATE_DIR)/rules/toolchain.mk
 ## library.  If none works the build stops here, naming the paths it tried,
 ## rather than failing later with a puzzling "no such file or directory".
 ##
+## OPENWCH_DIR can always be passed on the command line or in the environment
+## to override the search completely.
+##
 OPENWCH_DIR	?= $(firstword $(foreach d, \
-		   $(abspath $(TEMPLATE_DIR)/libopenwch) \
 		   $(abspath $(TEMPLATE_DIR)/../libopenwch) \
+		   $(abspath $(TEMPLATE_DIR)/libopenwch) \
 		   $(abspath $(TEMPLATE_DIR)/..), \
 		   $(if $(wildcard $(d)/mk/genlink-config.mk),$(d))))
 
 ifeq ($(strip $(OPENWCH_DIR)),)
 $(error Cannot find libopenwch. Pass OPENWCH_DIR=/path/to/libopenwch, or run \
     `git submodule update --init` to fetch the submodule. Looked in \
-    $(abspath $(TEMPLATE_DIR)/libopenwch), \
-    $(abspath $(TEMPLATE_DIR)/../libopenwch) and $(abspath $(TEMPLATE_DIR)/..).)
+    $(abspath $(TEMPLATE_DIR)/../libopenwch), \
+    $(abspath $(TEMPLATE_DIR)/libopenwch) and $(abspath $(TEMPLATE_DIR)/..).)
 endif
 
 include $(OPENWCH_DIR)/mk/genlink-config.mk

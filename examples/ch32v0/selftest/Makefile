@@ -18,22 +18,26 @@
 ##
 
 ##
-## CH32V003 self-test group.
+## CH32V003 integrated self-test.
 ##
-## Keeps the individual self-tests in their own folders while presenting the
-## group as one entry to the examples build and CI loops.
+## Runs RCC, SysTick, GPIO, USART, DMA, TIM1/TIM2, ADC, SPI, I2C and
+## ESIG/EXTEN cases in one image, then verifies IWDG and WWDG reset
+## behaviour.  Progress is printed on USART1 (PD5, 115200 8N1).
 ##
 
-TARGETS = dma_selftest timer_selftest watchdog_selftest
+PROJECT= selftest
 
-all:
-	@for t in $(TARGETS); do \
-	$(MAKE) -C $$t || exit $$?; \
-	done
+DEVICE?= ch32v003f4p6
 
-clean:
-	@for t in $(TARGETS); do \
-	$(MAKE) -C $$t clean || exit $$?; \
-	done
+TEMPLATE_DIR?= $(abspath ../../..)
 
-.PHONY: all clean
+CFILES= selftest_main.c selftest_console.c selftest_cases.c
+
+## A self-test has no useful recovery path if an assert fires; prefer compact
+## code and explicit PASS/FAIL reporting in this image.  The sources also
+## carry SELFTEST_OPTIMIZE (gnu::optimize("Os")) so the size contract is visible
+## in the code rather than only in this Makefile.
+OPT= -Os
+CFLAGS += -DNDEBUG
+
+include $(TEMPLATE_DIR)/rules/rules.mk

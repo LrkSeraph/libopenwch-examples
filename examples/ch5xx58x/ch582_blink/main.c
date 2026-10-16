@@ -36,35 +36,37 @@
  * Flash:   make flash
  */
 
-#include <libopenwch/ch5xx58x/clk.h>
 #include <libopenwch/ch5xx58x/gpio.h>
+#include <libopenwch/ch5xx58x/rcc.h>
 #include <libopenwch/qingke/systick.h>
 
 /*
- * Board wiring.  Change these two lines for your own board.  PB4 is broken
- * out on most CH582/CH583 modules; the LED is active low on the WCH boards.
+ * Board wiring.  Change these two lines for your own board.  The current
+ * board has an active-low LED on PA7, so driving the pin low turns it on.
  */
-#define LED_PORT GPIOB
-#define LED_PIN GPIO4
+#define LED_PORT GPIOA
+#define LED_PIN GPIO7
 
 int main(void) {
 	/*
-	 * 60 MHz from the PLL: one call names the tree and powers XT32M
-	 * first, and it leaves the frequency in rcc_sysclk_frequency.
+	 * 60 MHz from the PLL: the same table-driven style as CH32V0,
+	 * and it leaves the frequency in rcc_sysclk_frequency.
 	 */
-	clk_set_sys_clock(CLK_SOURCE_PLL_60MHZ);
+	rcc_clock_setup_pll(&rcc_sysclk_configs[RCC_SYSCLK_PLL_60MHZ]);
 
 	/* Drive the LED pin push-pull. */
 	gpio_set_mode(LED_PORT, GPIO_MODE_OUTPUT_PP_5MA, LED_PIN);
 
-	/* Use SysTick as the time base: 1 ms ticks. */
-	qingke_systick_set_frequency(rcc_sysclk_frequency);
-	systick_set_clock_source(1); /* run from the system clock */
-	systick_clear_interrupt();
-	systick_enable_counter();
+	/* Active low: clear the pin to turn the LED on immediately. */
+	gpio_clear(LED_PORT, LED_PIN);
+
+	/* Use SysTick as the time base: HCLK clocks the counter directly. */
+	qingke_systick_setup_hclk(rcc_sysclk_frequency);
 
 	for (;;) {
-		gpio_toggle(LED_PORT, LED_PIN);
+		gpio_clear(LED_PORT, LED_PIN); /* on  */
+		qingke_delay_ms(250);
+		gpio_set(LED_PORT, LED_PIN); /* off */
 		qingke_delay_ms(250);
 	}
 

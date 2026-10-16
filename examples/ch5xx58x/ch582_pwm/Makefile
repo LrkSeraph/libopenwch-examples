@@ -18,17 +18,17 @@
 ##
 
 ##
-## CH32V003 DMA memory-to-memory self-test.
+## CH582 breathing-light PWM example.
 ##
-## DMA1 channel 1 copies SRAM blocks in MEM2MEM mode; PASS/FAIL progress is
-## printed on USART1 (PD5, 115200 8N1).
+## PA7 is routed to PWM5 with GPIO_REMAP_PWMX and driven with a raised-cosine
+## brightness curve; the common board LED is active low.
 ##
 
-PROJECT= dma_selftest
+PROJECT= ch582_pwm
 
-DEVICE?= ch32v003f4p6
+DEVICE?= ch582m
 
-TEMPLATE_DIR?= $(abspath ../../../..)
+TEMPLATE_DIR?= $(abspath ../../..)
 
 CFILES= main.c
 

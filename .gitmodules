@@ -1,3 +1,4 @@
 [submodule "libopenwch"]
 	path = libopenwch
 	url = https://github.com/LrkSeraph/libopenwch.git
+	branch = master

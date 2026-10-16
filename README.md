@@ -16,8 +16,19 @@ make flash      # WCH-Link + minichlink by default
 ```
 
 Without `--recurse-submodules`, run `git submodule update --init`; or build
-against another checkout with `make OPENWCH_DIR=/path/to/libopenwch`. After a
-submodule source update, rebuild the archive once with `make -C libopenwch`.
+against another checkout with `make OPENWCH_DIR=/path/to/libopenwch`.
+
+`rules.mk` looks for libopenwch in this order:
+
+1. a sibling `../libopenwch`, so examples in a shared workspace always follow
+   the current libopenwch HEAD;
+2. the `libopenwch` submodule, for standalone clones;
+3. the parent directory, when the examples live inside a libopenwch checkout.
+
+After a submodule source update, rebuild the archive once with
+`make -C libopenwch`; with a sibling checkout, just rebuild the library in
+that checkout. The submodule tracks the `master` branch, so it can be moved
+with `git submodule update --remote libopenwch`.
 
 | Family | Example | Device | Purpose |
 |---|---|---|---|
@@ -29,7 +40,8 @@ submodule source update, rebuild the archive once with `make -C libopenwch`.
 | ch32v0 | `spi_nor_crc` | ch32v003f4p6 | SPI1 NOR detect, ID/capacity/SFDP, 4 KiB CRC32 |
 | ch32v0 | `uart_counter` | ch32v003f4p6 | chip id/sysclk + counter per second |
 | ch5xx58x | `ch582_ble_advertise` | ch582m | BLE peripheral "libopenwch" |
-| ch5xx58x | `ch582_blink` | ch582m | 32 MHz crystal + PLL to 60 MHz, PB4 LED |
+| ch5xx58x | `ch582_blink` | ch582m | 32 MHz crystal + PLL to 60 MHz, PA7 active-low LED |
+| ch5xx58x | `ch582_pwm` | ch582m | PA7 PWM5 breathing light, active-low LED |
 | ch5xx58x | `ch582_uart_counter` | ch582m | chip id/sysclk + counter on UART1 PA8 |
 
 `spi_nor_crc` checks first 16 pages (64 KiB); override with
